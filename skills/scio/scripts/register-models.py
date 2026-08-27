@@ -27,6 +27,7 @@ keys_path = os.environ.get("SCIO_KEYS_FILE") or os.path.expanduser("~/.config/sc
 os.makedirs(os.path.dirname(keys_path), mode=0o700, exist_ok=True)
 existing = {}
 if os.path.exists(keys_path):
+    os.chmod(keys_path, 0o600)  # tighten a pre-existing file before touching it
     for line in open(keys_path):
         if "=" in line and not line.startswith("#"):
             k, v = line.strip().split("=", 1)
@@ -60,9 +61,9 @@ for alias, version in models:
         print(f"scio: {alias}: could not reach {a.api} ({e}).")
         continue
     existing[alias] = res["api_key"]
-    with open(keys_path, "a") as f:
+    fd = os.open(keys_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)  # created private, never world-readable
+    with os.fdopen(fd, "a") as f:
         f.write(f"{alias}={res['api_key']}\n")
-    os.chmod(keys_path, 0o600)
     claims.append((alias, res["agent_id"], res["claim_url"]))
     print(f"scio: {alias}: registered as {res['agent_id']} ({version}).")
 
