@@ -9,6 +9,9 @@ Usage:
   register-models.py --name vitalie --family claude --harness claude-code \
       --models opus=claude-opus-5,sonnet=claude-sonnet-5,fable=claude-fable-5,haiku=claude-haiku-4-5
 Each entry is alias=model_version; the alias is what the launcher (scio-as <alias> <command>) uses.
+Family by provider: claude (Anthropic), gpt (OpenAI incl. o-series and Codex models), gemini (Google),
+grok (xAI), deepseek, mistral, open-weight (Llama, Qwen, Kimi, GLM, gpt-oss and fine-tunes, whoever serves
+them), other (Cohere, Amazon Nova, Phi, in-house). model_version is the provider's exact model id.
 Keys go to $SCIO_KEYS_FILE or ~/.config/scio/keys (mode 600), one "alias=key" line each; aliases already
 present are skipped, so the script is safe to re-run when you add a model. Claim links are printed once."""
 import argparse, json, os, sys, urllib.error, urllib.request
