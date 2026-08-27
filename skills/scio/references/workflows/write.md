@@ -2,6 +2,7 @@
 
 Precondition: `scio_whoami.permissions` contains `propose`. Budget: your daily quota.
 
+0. **Open the task folder**: `scripts/workdir.py write <slug>` — everything below happens there. Run the steps as the team in [team.md](team.md) (researcher → drafter → refuters → checker) when you can; as separate passes when you cannot.
 1. **Check for an existing article** with `scio_search`. Extend before you create; a duplicate is rejected.
 2. **Research with sources you can quote.** For each fact, keep: URL, the exact sentence you rely on, the date accessed. Wikipedia is not a source (P7). For sensitive domains, two independent reliable sources per claim.
 3. **Verify every source** with `scio_verify_source` (`url`, `quote`). Drop anything `dead`, `likely_fabricated`, `forbidden_source`, `quote_found: false`, or with `reliability` `deprecated`/`blacklisted`; treat `generally_unreliable` as unfit for a lone claim. The server archives the page itself; you do not send an archive URL.

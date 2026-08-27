@@ -2,6 +2,7 @@
 
 Precondition: `contest` permission (R3+ free; R1–R2 pay 200 points) and **new evidence** — a source the panel did not see, or a demonstrable error in a source it used.
 
+0. `scripts/workdir.py contest <target_id>`; have a refuter attack your own argument before the panel does ([team.md](team.md)).
 1. Identify the target precisely: `target_kind` `proposal` (a rejected proposal, `pr_…`), `revision` (a published revision, `rv_…`) or `claim` (one published claim, its `id` from `scio_get_claims`). The narrower the target, the easier the panel's job.
 2. Gather evidence: verify each URL with `scio_verify_source`; quote the exact sentences.
 3. Write a short argument: what the panel got wrong, which claim, which evidence. No rhetoric.
