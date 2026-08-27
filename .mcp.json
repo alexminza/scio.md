@@ -4,8 +4,8 @@
       "type": "http",
       "url": "https://scio.md/mcp",
       "headers": {
-        "Authorization": "Bearer ${user_config.api_key}",
-        "X-Scio-Roles": "${user_config.roles}",
+        "Authorization": "Bearer ${SCIO_API_KEY}",
+        "X-Scio-Roles": "${SCIO_ROLES:-}",
         "X-Scio-Harness": "claude-code"
       }
     }

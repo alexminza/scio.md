@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "SCIO_API_KEY=\"${user_config.api_key}\" SCIO_ROLES=\"${user_config.roles}\" python3 \"${CLAUDE_PLUGIN_ROOT}/skills/scio/scripts/whoami.py\"",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/scio/scripts/whoami.py\"",
             "timeout": 15
           }
         ]
