@@ -14,6 +14,9 @@ UNDATED = re.compile(r"\b(recently|currently|nowadays|at present|these days|now|
 DATE = re.compile(r"\b(as of|in|since|until|on|between|from)\s+(\d{1,2}\s+)?(january|february|march|april|may|june|july|august|september|october|november|december|\d{4})\b|\b(19|20)\d{2}\b", re.I)
 PUFFERY = re.compile(r"\b(groundbreaking|renowned|world-class|legendary|infamous|so-called|cutting-edge|revolutionary|iconic|prestigious|leading|best-known|widely (regarded|believed|considered|known)|it is (well )?known that|experts agree|many (people|experts) (say|believe))\b", re.I)
 READER = re.compile(r"\b(note that|see below|as an ai|as a language model|you should|the reader)\b", re.I)
+WIKILINK = re.compile(r"!?\[\[([^\]|#^]+)(#[^\]|^]+)?(\^[^\]|]+)?(\|[^\]]+)?\]\]")
+EXT_LINK = re.compile(r"(?<!\!)\[[^\]]+\]\((https?://[^)]+)\)")
+CALLOUT = re.compile(r"^>\s*\[!(\w+)\]", re.M)
 VAGUE_NUM = re.compile(r"\b(most|many|few|several|numerous|a lot of|the majority of|significant(ly)?|huge|massive)\b", re.I)
 
 
@@ -102,12 +105,34 @@ def check(inp):
         problems.append(f"markers without a claim: {sorted(markers - set(by_ordinal))[:8]}")
     if set(by_ordinal) - markers and not inp.get("patch"):
         warnings.append(f"claims without a marker in the body: {sorted(set(by_ordinal) - markers)[:8]}")
-    sentences = [s for s in re.split(r"(?<=[.!?\]])\s+", prose.strip()) if len(s) > 20 and not s.startswith("|")]
+    plain = WIKILINK.sub(lambda m: (m.group(4) or "|" + m.group(1)).lstrip("|").strip(), prose)  # links read as their label
+    sentences = [s for s in re.split(r"(?<=[.!?\]])\s+", plain.strip()) if len(s) > 20 and not s.startswith("|")]
     unmarked = [s[:60] for s in sentences if not re.search(r"\[\^c\d+\]", s)]
     if unmarked:
         problems.append(f"{len(unmarked)} sentence(s) without a [^cN] marker, e.g. \"{unmarked[0]}…\"")
     if re.search(r"<[a-zA-Z/][^>]*>", prose):
         problems.append("raw HTML is rejected at gate 0; use the Markdown dialect")
+    # dialect: footnote marker and block id on the same line, one claim per line
+    for line in prose.splitlines():
+        fns = re.findall(r"\[\^c(\d+)\]", line)
+        bids = re.findall(r"\^c(\d+)\s*$", line)
+        if len(fns) > 1:
+            problems.append(f"two claims on one line — one sentence per line: \"{line[:60]}…\" (markdown.md §2)")
+        elif fns and not bids:
+            warnings.append(f"claim [^c{fns[0]}] has no block id ^c{fns[0]} at the end of its line (markdown.md §2)")
+        elif fns and bids and fns[0] != bids[0]:
+            problems.append(f"marker [^c{fns[0]}] and block id ^c{bids[0]} differ on one line")
+    for m in EXT_LINK.finditer(prose):
+        problems.append(f"external link in prose ({m.group(1)[:50]}) — evidence goes in claims, prose links go to Scio (markdown.md §3)")
+    for m in CALLOUT.finditer(prose):
+        if m.group(1).lower() not in ("disputed", "demonstration"):
+            problems.append(f"unknown callout [!{m.group(1)}] — only [!disputed] and [!demonstration] (markdown.md §5)")
+    for m in WIKILINK.finditer(prose):
+        target = m.group(1).strip()
+        if not re.fullmatch(r"([a-z]{2,3}(-[A-Za-z0-9]{2,8})*/)?[a-z0-9][a-z0-9-]*", target):
+            warnings.append(f"wikilink target '{target}' is not a slug (lowercase, hyphens, optional lang/ prefix)")
+    if re.search(r"!\[\[[^\]]+\.(png|jpg|jpeg|svg|webp|gif)\]\]", prose, re.I):
+        problems.append("file embeds ![[…]] are not allowed; use ![alt](media:<sha256>.<ext>) after scio_upload_media")
     for s in sentences:
         if UNDATED.search(s) and not DATE.search(s):
             warnings.append(f"undated time-bound wording: \"{s[:70]}…\" — date it (C4)")

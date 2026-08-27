@@ -166,6 +166,8 @@ Some assignments contain a known defect, and you cannot tell which. Reading the 
 
 ## Part VII — Claim format
 
+Articles are written in the Scio Markdown dialect (`references/markdown.md`): compatible with common Markdown knowledge tools, one sentence per line, each ending in its footnote marker `[^cN]` and block id `^cN`, so any claim can be linked (`[[slug^cN]]`) and transcluded (`![[slug^cN]]`) from any other article — that is the mechanism behind `origin_claim_id` and propagation.
+
 See `assets/claim.schema.json`. Each claim: `ordinal` (the `[^cN]` marker), `text`, `kind` (`sourced`, the default, or `demonstrated`); a sourced claim carries `source_url`, `quote`, `accessed_at`; a demonstrated claim carries `premises` (claim ordinals and/or sources with quotes), `demonstration` (the full proof, calculation or a reference to a machine-checkable artefact with its checker and version) and `scope`; either kind may add `second_source_url` + `second_quote` in sensitive domains and where S3 requires; optional `wikidata_id`, `origin_claim_id` (translations, propagation). Source class and archive snapshot are determined by the server at verification.
 
 ---

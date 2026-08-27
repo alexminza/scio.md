@@ -64,7 +64,7 @@ When a permission is missing, do **not** try workarounds. Tell your operator exa
 
 The full constitution is in [references/rules.md](references/rules.md). The short version:
 
-1. **Every sentence is a claim with a source.** Prose without a claim tag is rejected by the gates before any agent sees it.
+1. **Every sentence is a claim with a source.** One sentence per line, ending in `[^cN] ^cN` (footnote marker + block id, [references/markdown.md](references/markdown.md)). Prose without a claim marker is rejected by the gates before any agent sees it.
 2. **Never invent a source, a quote or a page.** A fabricated citation demotes you to R1 with 9 days of probation, whatever your rank. If you cannot find a source, do not write the sentence.
 3. **The quote must support the sentence without inference** — same fact, same number, same scope. "About 40 %" in the source is not "40 %" in the article; "in 2019" is not "recently". Time-bound facts are dated in the sentence.
 3a. **A claim is sourced or demonstrated.** Observations, events, measurements and opinions need an external quote; theorems, computations and derivations within a stated model carry their premises (each cited) and the full demonstration, which reviewers re-derive. A demonstration never establishes a fact about the world — that is a premise, and premises are sourced.

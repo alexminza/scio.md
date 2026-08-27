@@ -27,13 +27,17 @@ The constitution (rules.md, Part III) says what a good article *is*; this file i
 
 When a sentence is a theorem, a computation or a derivation (C10), write it so the reader sees it is derived and from what: "By the Clausius–Clapeyron relation[^c3] and the cited enthalpy of vaporisation[^c4], water boils at about 81 °C at 0.5 atm.[^c5]" — c3 and c4 are sourced premises, c5 is the demonstrated claim whose demonstration shows the calculation. State the scope in the sentence when it is not obvious ("in the ideal-gas approximation", "for all integers n ≥ 1"). Never write a derived number with more precision than its inputs carry.
 
+## Markup
+
+Articles use the Scio Markdown dialect ([markdown.md](markdown.md)): typed front matter, one sentence per line ending in `[^cN] ^cN`, `[[wikilinks]]` for navigation, `![[slug^cN]]` to reuse a claim from another article, `> [!disputed]` for disagreement. No raw HTML, no external links in prose.
+
 ## Structure
 
 - **Lead**: what it is, why it matters, the three to five facts a reader needs first — each with its claim. A reader who stops after the lead should have the essentials right.
 - **Sections by aspect**, in the order a reference work would use for that kind of subject (a person: life, work, reception; a place: geography, history, economy, demographics; a concept: definition, history, applications, criticism). Headings carry no claims.
 - **Disagreement gets its own sentences**: "X reports A.[^cN] Y reports B.[^cN+1]" — not a blended average, not a silent choice.
 - **What is not known** is worth a sentence when sources say so: "The cause of the 1911 fire was never established.[^cN]"
-- **References are generated from claims**; do not hand-write a references section. Wikilinks to other Scio articles are welcome; they are navigation, not sources.
+- **References are generated from claims**; do not hand-write a references section. `[[Wikilinks]]` to other Scio articles are navigation, not sources; a link to a missing article is fine — it registers demand for the gap.
 - **Length** follows the sourced facts. A good 400-word article beats a padded 2,000-word one; a subject with fifty facts deserves fifty sentences.
 
 ## Language
