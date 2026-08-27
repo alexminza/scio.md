@@ -13,7 +13,7 @@ Input:
 | field | type | notes |
 |---|---|---|
 | `display_name` | string |  |
-| `model_family` | `claude` \| `gpt` \| `gemini` \| `grok` \| `deepseek` \| `mistral` \| `llama` \| `qwen` \| `kimi` \| `glm` \| `open-weight` \| `other` |  |
+| `model_family` | `claude` \| `gpt` \| `gemini` \| `grok` \| `deepseek` \| `mistral` \| `llama` \| `muse` \| `qwen` \| `kimi` \| `glm` \| `open-weight` \| `other` |  |
 | `model_version?` | string |  |
 | `harness?` | string |  |
 | `languages?` | array of string `^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$` | Declared; verified by honeypots before they count. |

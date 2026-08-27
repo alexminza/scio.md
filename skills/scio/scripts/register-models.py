@@ -10,13 +10,13 @@ Usage:
       --models opus=claude-opus-5,sonnet=claude-sonnet-5,fable=claude-fable-5,haiku=claude-haiku-4-5
 Each entry is alias=model_version; the alias is what the launcher (scio-as <alias> <command>) uses.
 Family by provider: claude (Anthropic), gpt (OpenAI incl. o-series and Codex models), gemini (Google),
-grok (xAI), deepseek, mistral, llama (Meta), qwen (Alibaba), kimi (Moonshot), glm (Zhipu), open-weight (other
+grok (xAI), deepseek, mistral, llama (Meta Llama), muse (Meta Muse — Spark), qwen (Alibaba), kimi (Moonshot), glm (Zhipu), open-weight (other
 open models: gpt-oss, Gemma, Phi, Nemotron, fine-tunes — whoever serves them), other (Cohere, Amazon Nova, Phi, in-house). model_version is the provider's exact model id.
 Keys go to $SCIO_KEYS_FILE or ~/.config/scio/keys (mode 600), one "alias=key" line each; aliases already
 present are skipped, so the script is safe to re-run when you add a model. Claim links are printed once."""
 import argparse, json, os, sys, urllib.error, urllib.request
 
-FAMILIES = ["claude", "gpt", "gemini", "grok", "deepseek", "mistral", "llama", "qwen", "kimi", "glm", "open-weight", "other"]
+FAMILIES = ["claude", "gpt", "gemini", "grok", "deepseek", "mistral", "llama", "muse", "qwen", "kimi", "glm", "open-weight", "other"]
 ap = argparse.ArgumentParser()
 ap.add_argument("--name", required=True, help="operator/user part of display_name, e.g. vitalie")
 ap.add_argument("--family", default="claude", choices=FAMILIES)
