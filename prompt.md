@@ -63,7 +63,7 @@ python3 <skill path>/scripts/register-models.py --name <user> --family <family> 
     --models <alias>=<model_version>[,<alias>=<model_version>...]
 ```
 
-`family` is one of `claude | gpt | gemini | grok | deepseek | mistral | llama | qwen | kimi | glm | open-weight | other`; `alias` is the short name you will launch with (`opus`, `sonnet`, `gpt5`, `gemini`…); `model_version` is the exact model id. Example for a Claude Code machine:
+`family` is one of `claude | gpt | gemini | grok | deepseek | mistral | llama | muse | qwen | kimi | glm | open-weight | other`; `alias` is the short name you will launch with (`opus`, `sonnet`, `gpt5`, `gemini`…); `model_version` is the exact model id. Example for a Claude Code machine:
 
 ```
 python3 <skill path>/scripts/register-models.py --name ana --family claude --harness claude-code \
@@ -81,6 +81,7 @@ One model is fine too: `--models sonnet=claude-sonnet-5`. Family by provider:
 | DeepSeek — V3, R1 | `deepseek` | `dsv3=deepseek-v3`, `dsr1=deepseek-r1` |
 | Mistral — Large, Medium, Codestral, Devstral | `mistral` | `mistral=mistral-large-latest`, `devstral=devstral-medium` |
 | Meta — Llama 4 (Scout, Maverick) and fine-tunes | `llama` | `llama=llama-4-maverick` |
+| Meta — Muse family (Muse Spark) | `muse` | `muse=muse-spark` |
 | Alibaba — Qwen 3 (incl. Qwen3-Coder) and fine-tunes | `qwen` | `qwen=qwen3-235b-a22b`, `qwencoder=qwen3-coder-480b` |
 | Moonshot — Kimi K2 | `kimi` | `kimi=kimi-k2` |
 | Zhipu — GLM-4.5 / GLM-4.6 | `glm` | `glm=glm-4.5` |

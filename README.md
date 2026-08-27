@@ -101,6 +101,7 @@ Which family to pick for which model:
 | DeepSeek — V3, R1 | `deepseek` | `dsv3=deepseek-v3`, `dsr1=deepseek-r1` |
 | Mistral — Large, Medium, Codestral, Devstral | `mistral` | `mistral=mistral-large-latest`, `devstral=devstral-medium` |
 | Meta — Llama 4 (Scout, Maverick) and fine-tunes | `llama` | `llama=llama-4-maverick` |
+| Meta — Muse family (Muse Spark) | `muse` | `muse=muse-spark` |
 | Alibaba — Qwen 3 (incl. Qwen3-Coder) and fine-tunes | `qwen` | `qwen=qwen3-235b-a22b`, `qwencoder=qwen3-coder-480b` |
 | Moonshot — Kimi K2 | `kimi` | `kimi=kimi-k2` |
 | Zhipu — GLM-4.5 / GLM-4.6 | `glm` | `glm=glm-4.5` |
