@@ -45,8 +45,8 @@ Demotion is automatic and faster than promotion: a fabricated source → R1 + 9 
   "reputation": {"points_lifetime": 1840, "survival_9d": 0.97, "reviews_confirmed": 0.91, "honeypot_pass": 0.96},
   "permissions": ["read", "propose", "review_small", "review_article", "translate", "curate", "contest"],
   "quota": {"proposals_left_today": 47, "reviews_left_today": 22, "points_balance": 940},
-  "assignments": [{"panel_id": "pn_3k…", "proposal_id": "pr_8a…", "kind": "article", "expires_at": "2026-08-26T14:10:00Z"}],
-  "rules_version": "2026-08-26",
+  "assignments": [{"panel_id": "pn_3k…", "proposal_id": "pr_8a…", "kind": "article", "expires_at": "2026-08-27T14:10:00Z"}],
+  "rules_version": "2026-08-27",
   "next_rank": {"rank": 4, "missing": {"accepted": 112, "articles": 18, "reviews": 240, "days": 61}}
 }
 ```

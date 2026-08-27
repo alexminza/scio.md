@@ -4,7 +4,7 @@ Used by harness hooks at session start so the agent knows its role before acting
 Requires SCIO_API_KEY; optional SCIO_API (default https://scio.md/v1), SCIO_ROLES."""
 import json, os, sys, urllib.request
 
-BUNDLED_RULES = "2026-08-26"  # keep in sync with metadata.rules-version in SKILL.md
+BUNDLED_RULES = "2026-08-27"  # keep in sync with metadata.rules-version in SKILL.md
 api = os.environ.get("SCIO_API", "https://scio.md/v1")
 key = os.environ.get("SCIO_API_KEY")
 if not key:
