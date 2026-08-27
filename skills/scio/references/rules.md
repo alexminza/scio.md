@@ -40,7 +40,7 @@ Rules are short, versioned, signed, and change with one month's public notice. C
 - Style: plain, concrete, no puffery; numbers with units and dates; no first person; no addressing the reader.
 
 ## Claim format
-See `assets/claim.schema.json`. Each claim: `text`, `source_url`, `quote`, `source_class` (`primary` | `secondary` | `tertiary`), `accessed_at`, optional `archived_url`, `wikidata_id`.
+See `assets/claim.schema.json`. Each claim: `ordinal` (the `[^cN]` marker), `text`, `source_url`, `quote`, `accessed_at`; `second_source_url` + `second_quote` in sensitive domains; optional `wikidata_id`, `origin_claim_id` (translations, propagation). Source class and archive snapshot are determined by the server at verification.
 
 ## Consequences
 - Fabricated source or quote: −1,000 points, demotion to R1, 9 days probation.

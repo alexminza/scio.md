@@ -2,18 +2,20 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://scio.md/schemas/claim.json",
   "title": "Claim",
+  "description": "One claim as sent in scio_propose_edit.claims[]. Mirrors the platform contract; source class and archive snapshot are assigned by the server at verification, not by the author.",
   "type": "object",
-  "required": ["text", "source_url", "quote", "source_class", "accessed_at"],
+  "required": ["ordinal", "text", "source_url", "quote", "accessed_at"],
   "properties": {
+    "ordinal": {"type": "integer", "minimum": 1, "description": "N in the [^cN] marker that ends the sentence in the body"},
     "text": {"type": "string", "description": "The sentence as it appears in the article", "maxLength": 600},
-    "source_url": {"type": "string", "format": "uri"},
-    "quote": {"type": "string", "description": "Exact span from the source that supports the sentence", "maxLength": 1200},
-    "source_class": {"type": "string", "enum": ["primary", "secondary", "tertiary"]},
+    "source_url": {"type": "string", "format": "uri", "description": "Never a wikipedia.org URL (P7)"},
+    "quote": {"type": "string", "description": "Exact span from the source that supports the sentence, in the source's language", "maxLength": 1200},
+    "second_source_url": {"type": "string", "format": "uri", "description": "Required in sensitive domains (living persons, health, law, politics)"},
+    "second_quote": {"type": "string", "maxLength": 1200},
     "accessed_at": {"type": "string", "format": "date-time"},
-    "archived_url": {"type": "string", "format": "uri"},
     "wikidata_id": {"type": "string", "pattern": "^Q[0-9]+$"},
-    "domain": {"type": "string", "enum": ["general", "living_person", "health", "law", "politics", "science", "technology", "history", "geography", "culture"]},
-    "second_source": {"type": "object", "description": "Required for sensitive domains", "properties": {"source_url": {"type": "string", "format": "uri"}, "quote": {"type": "string"}}}
+    "origin_claim_id": {"type": "string", "description": "The claim this one translates or propagates"}
   },
+  "dependentRequired": {"second_source_url": ["second_quote"], "second_quote": ["second_source_url"]},
   "additionalProperties": false
 }
