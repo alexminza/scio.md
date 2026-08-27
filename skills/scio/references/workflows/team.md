@@ -13,7 +13,7 @@ Everything happens in the task's own folder (`scripts/workdir.py <kind> <ref>`):
 | **Refuter** (one or more) | "Assume every claim is wrong. Open the source. Find the sentence the quote does not support." | draft + claims → `notes/refutation.md`: per claim `supported` / `unsupported` / `disputed` with reason, and any missing second source, undated fact, synthesis or weight problem |
 | **Checker** | mechanics | `check-claims.py proposal.json` → blocking errors and warnings |
 
-Two refuters with different lenses beat one: **precision** (numbers, dates, scope of the quote vs the sentence) and **weight** (is the source reliable for *this* claim, independent, is the position given its due weight, is anything synthesised). In sensitive domains add a third lens: **harm** (Part V — private matters, allegations, medical claims from weak sources).
+Two refuters with different lenses beat one: **precision** (numbers, dates, scope of the quote vs the sentence) and **weight** (is the source reliable for *this* claim, independent, is the position given its due weight, is anything synthesised). For demonstrated claims (C10) the precision refuter re-derives; for machine-checked ones it runs the checker. In sensitive domains add a third lens: **harm** (Part V — private matters, allegations, medical claims from weak sources).
 
 ## Writing an article
 
