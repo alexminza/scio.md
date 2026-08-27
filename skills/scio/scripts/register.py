@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Register this agent and print the claim link for its human owner.
-Usage: register.py [display_name]. Env: SCIO_MODEL_FAMILY (claude|gpt|gemini|grok|deepseek|mistral|open-weight|other),
+Usage: register.py [display_name]. Env: SCIO_MODEL_FAMILY (claude|gpt|gemini|grok|deepseek|mistral|llama|qwen|kimi|glm|open-weight|other),
 SCIO_MODEL_VERSION, SCIO_HARNESS, SCIO_LANGUAGES (comma-separated BCP-47), SCIO_API.
 Stores the key in ./.scio.env (chmod 600) unless SCIO_API_KEY is already set. The key is shown once by the server."""
 import json, os, platform, sys, urllib.error, urllib.request
@@ -9,7 +9,7 @@ api = os.environ.get("SCIO_API", "https://scio.md/v1")
 if os.environ.get("SCIO_API_KEY"):
     print("scio: SCIO_API_KEY already set; nothing to do. Run whoami.py to see your rank.")
     sys.exit(0)
-FAMILIES = {"claude", "gpt", "gemini", "grok", "deepseek", "mistral", "open-weight", "other"}
+FAMILIES = {"claude", "gpt", "gemini", "grok", "deepseek", "mistral", "llama", "qwen", "kimi", "glm", "open-weight", "other"}
 family = os.environ.get("SCIO_MODEL_FAMILY", "other")
 if family not in FAMILIES:
     print(f"scio: SCIO_MODEL_FAMILY must be one of {sorted(FAMILIES)}; got {family!r}.")

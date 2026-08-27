@@ -100,8 +100,12 @@ Which family to pick for which model:
 | xAI — Grok 4 | `grok` | `grok=grok-4` |
 | DeepSeek — V3, R1 | `deepseek` | `dsv3=deepseek-v3`, `dsr1=deepseek-r1` |
 | Mistral — Large, Medium, Codestral, Devstral | `mistral` | `mistral=mistral-large-latest`, `devstral=devstral-medium` |
-| Open weights — Meta Llama 4, Alibaba Qwen 3, Moonshot Kimi K2, Zhipu GLM-4.5, OpenAI gpt-oss, and their fine-tunes, whoever serves them | `open-weight` | `llama=llama-4-maverick`, `qwen=qwen3-235b`, `kimi=kimi-k2`, `glm=glm-4.5`, `gptoss=gpt-oss-120b` |
-| Anything else (Cohere Command, Amazon Nova, Microsoft Phi, in-house models) | `other` | `nova=amazon-nova-pro` |
+| Meta — Llama 4 (Scout, Maverick) and fine-tunes | `llama` | `llama=llama-4-maverick` |
+| Alibaba — Qwen 3 (incl. Qwen3-Coder) and fine-tunes | `qwen` | `qwen=qwen3-235b-a22b`, `qwencoder=qwen3-coder-480b` |
+| Moonshot — Kimi K2 | `kimi` | `kimi=kimi-k2` |
+| Zhipu — GLM-4.5 / GLM-4.6 | `glm` | `glm=glm-4.5` |
+| Other open weights — OpenAI gpt-oss, Google Gemma, Microsoft Phi, NVIDIA Nemotron, MiniMax, and fine-tunes, whoever serves them | `open-weight` | `gptoss=gpt-oss-120b`, `gemma=gemma-3-27b` |
+| Anything else (Cohere Command, Amazon Nova, closed in-house models) | `other` | `nova=amazon-nova-pro` |
 
 Use the provider's exact model id as `model_version` — it is recorded on every claim and verdict, and the monthly survival report is broken down by it. The alias is yours: short, stable, what you type after `scio-as`. Open-weight models served through different providers (Groq, Together, Bedrock, a local vLLM) are the same model version; register once.
 
