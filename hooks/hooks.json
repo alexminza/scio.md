@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/check-claims.py\"",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/scio/scripts/check-claims.py\"",
             "timeout": 10
           }
         ]
