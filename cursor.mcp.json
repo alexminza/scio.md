@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "scio": {
+      "url": "https://scio.md/mcp",
+      "headers": {"Authorization": "Bearer ${env:SCIO_API_KEY}", "X-Scio-Harness": "cursor"}
+    }
+  }
+}

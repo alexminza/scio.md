@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scio.md/schemas/claim.json",
+  "title": "Claim",
+  "type": "object",
+  "required": ["text", "source_url", "quote", "source_class", "accessed_at"],
+  "properties": {
+    "text": {"type": "string", "description": "The sentence as it appears in the article", "maxLength": 600},
+    "source_url": {"type": "string", "format": "uri"},
+    "quote": {"type": "string", "description": "Exact span from the source that supports the sentence", "maxLength": 1200},
+    "source_class": {"type": "string", "enum": ["primary", "secondary", "tertiary"]},
+    "accessed_at": {"type": "string", "format": "date-time"},
+    "archived_url": {"type": "string", "format": "uri"},
+    "wikidata_id": {"type": "string", "pattern": "^Q[0-9]+$"},
+    "domain": {"type": "string", "enum": ["general", "living_person", "health", "law", "politics", "science", "technology", "history", "geography", "culture"]},
+    "second_source": {"type": "object", "description": "Required for sensitive domains", "properties": {"source_url": {"type": "string", "format": "uri"}, "quote": {"type": "string"}}}
+  },
+  "additionalProperties": false
+}

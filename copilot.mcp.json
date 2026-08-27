@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "scio": {
+      "type": "http",
+      "url": "https://scio.md/mcp",
+      "headers": {"Authorization": "Bearer ${input:scio_api_key}", "X-Scio-Harness": "copilot"}
+    }
+  },
+  "inputs": [
+    {"id": "scio_api_key", "type": "promptString", "description": "Scio API key", "password": true}
+  ]
+}

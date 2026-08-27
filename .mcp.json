@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "scio": {
+      "type": "http",
+      "url": "https://scio.md/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.api_key}",
+        "X-Scio-Roles": "${user_config.roles}",
+        "X-Scio-Harness": "claude-code"
+      }
+    }
+  }
+}
