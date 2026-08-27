@@ -2,20 +2,49 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://scio.md/schemas/claim.json",
   "title": "Claim",
-  "description": "One claim as sent in scio_propose_edit.claims[]. Mirrors the platform contract; source class and archive snapshot are assigned by the server at verification, not by the author.",
+  "description": "One claim as sent in scio_propose_edit.claims[]. Sourced claims (the default) carry a quote from an external source; demonstrated claims (C10) carry their premises and the demonstration itself. Source class and archive snapshot are assigned by the server at verification.",
   "type": "object",
-  "required": ["ordinal", "text", "source_url", "quote", "accessed_at"],
+  "required": ["ordinal", "text"],
   "properties": {
     "ordinal": {"type": "integer", "minimum": 1, "description": "N in the [^cN] marker that ends the sentence in the body"},
     "text": {"type": "string", "description": "The sentence as it appears in the article", "maxLength": 600},
-    "source_url": {"type": "string", "format": "uri", "description": "Never a wikipedia.org URL (P7)"},
+    "kind": {"type": "string", "enum": ["sourced", "demonstrated"], "default": "sourced"},
+    "source_url": {"type": "string", "format": "uri", "description": "Never a wikipedia.org or scio.md URL (P7)"},
     "quote": {"type": "string", "description": "Exact span from the source that supports the sentence, in the source's language", "maxLength": 1200},
-    "second_source_url": {"type": "string", "format": "uri", "description": "Required in sensitive domains (living persons, health, law, politics)"},
+    "second_source_url": {"type": "string", "format": "uri", "description": "Required in sensitive domains (Part V) and where S3 requires"},
     "second_quote": {"type": "string", "maxLength": 1200},
     "accessed_at": {"type": "string", "format": "date-time"},
+    "premises": {
+      "type": "array", "minItems": 1,
+      "description": "Demonstrated claims only: what the demonstration starts from. Each is an earlier claim in this article (by ordinal) or a cited source with the exact span (an axiom, definition, law, constant).",
+      "items": {"type": "object", "properties": {
+        "claim_ordinal": {"type": "integer", "minimum": 1},
+        "source_url": {"type": "string", "format": "uri"},
+        "quote": {"type": "string", "maxLength": 1200},
+        "accessed_at": {"type": "string", "format": "date-time"}
+      }, "oneOf": [{"required": ["claim_ordinal"]}, {"required": ["source_url", "quote", "accessed_at"]}], "additionalProperties": false}
+    },
+    "demonstration": {
+      "type": "object",
+      "description": "Demonstrated claims only: the proof, calculation or machine-checkable artefact — complete enough to re-derive without filling gaps.",
+      "properties": {
+        "method": {"type": "string", "enum": ["proof", "calculation", "proof_assistant", "program"]},
+        "text": {"type": "string", "description": "The written proof or the calculation with every intermediate value", "maxLength": 20000},
+        "checker": {"type": "string", "description": "e.g. lean 4.12, coq 8.19, python 3.12 — required for proof_assistant and program"},
+        "artifact_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Uploaded via scio_upload_media as text; the file the checker runs"},
+        "output": {"type": "string", "description": "Exact output of the checker or program", "maxLength": 4000}
+      },
+      "required": ["method"], "additionalProperties": false
+    },
+    "scope": {"type": "string", "description": "Demonstrated claims: the model and conditions under which the result holds (e.g. classical mechanics, n ≥ 1, 1 atm)", "maxLength": 400},
     "wikidata_id": {"type": "string", "pattern": "^Q[0-9]+$"},
     "origin_claim_id": {"type": "string", "description": "The claim this one translates or propagates"}
   },
+  "allOf": [
+    {"if": {"properties": {"kind": {"const": "demonstrated"}}, "required": ["kind"]},
+     "then": {"required": ["premises", "demonstration", "scope"]},
+     "else": {"required": ["source_url", "quote", "accessed_at"]}}
+  ],
   "dependentRequired": {"second_source_url": ["second_quote"], "second_quote": ["second_source_url"]},
   "additionalProperties": false
 }

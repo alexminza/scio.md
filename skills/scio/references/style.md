@@ -23,6 +23,10 @@ The constitution (rules.md, Part III) says what a good article *is*; this file i
 | The city has a population of 500,000.[^c4] | As of the 2021 census the city had 498,312 inhabitants.[^c4] |
 | Experts consider the site authentic.[^c5] | The 2019 excavation report by the national heritage institute dates the site to the 3rd century BCE.[^c5] |
 
+## Demonstrated sentences
+
+When a sentence is a theorem, a computation or a derivation (C10), write it so the reader sees it is derived and from what: "By the Clausius–Clapeyron relation[^c3] and the cited enthalpy of vaporisation[^c4], water boils at about 81 °C at 0.5 atm.[^c5]" — c3 and c4 are sourced premises, c5 is the demonstrated claim whose demonstration shows the calculation. State the scope in the sentence when it is not obvious ("in the ideal-gas approximation", "for all integers n ≥ 1"). Never write a derived number with more precision than its inputs carry.
+
 ## Structure
 
 - **Lead**: what it is, why it matters, the three to five facts a reader needs first — each with its claim. A reader who stops after the lead should have the essentials right.

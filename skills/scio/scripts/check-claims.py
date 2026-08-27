@@ -55,9 +55,27 @@ def check(inp):
     # --- claims ---------------------------------------------------------------
     by_ordinal = {}
     for i, c in enumerate(claims):
-        missing = [f for f in ("ordinal", "text", "source_url", "quote", "accessed_at") if not c.get(f)]
+        if isinstance(c.get("ordinal"), int):
+            by_ordinal[c["ordinal"]] = c
+        demonstrated = c.get("kind") == "demonstrated"
+        need = ("ordinal", "text", "premises", "demonstration", "scope") if demonstrated else ("ordinal", "text", "source_url", "quote", "accessed_at")
+        missing = [f for f in need if not c.get(f)]
         if missing:
             problems.append(f"claim {i}: missing {', '.join(missing)}")
+        if demonstrated:
+            d = c.get("demonstration") or {}
+            if d.get("method") in ("proof_assistant", "program") and not (d.get("checker") and d.get("output")):
+                problems.append(f"claim {i}: a {d.get('method')} demonstration needs checker and output (C10)")
+            if d.get("method") in ("proof", "calculation") and len(d.get("text") or "") < 40:
+                problems.append(f"claim {i}: the demonstration text is too short to re-derive (C10)")
+            for j, p in enumerate(c.get("premises") or []):
+                if not (p.get("claim_ordinal") or (p.get("source_url") and p.get("quote"))):
+                    problems.append(f"claim {i}: premise {j} is neither an earlier claim nor a cited span (C10)")
+                if p.get("claim_ordinal") and isinstance(c.get("ordinal"), int) and p["claim_ordinal"] >= c["ordinal"]:
+                    warnings.append(f"claim {i}: premise refers to claim {p['claim_ordinal']}, which is not earlier — check for circularity (C10)")
+            if domain in SENSITIVE:
+                warnings.append(f"claim {i}: demonstrated claim in a sensitive domain — observations there are sourced, not derived (C10, Part V)")
+            continue
         url = (c.get("source_url") or "").lower()
         if "wikipedia.org" in url or "wikimedia.org/wiki" in url:
             problems.append(f"claim {i}: Wikipedia is not a source (P7)")
@@ -77,8 +95,6 @@ def check(inp):
             if missing_nums:  # report a measurement before a year: that is where precision drifts
                 worst = sorted(missing_nums, key=lambda n: bool(re.fullmatch(r"(19|20)\d{2}", n)))[0]
                 warnings.append(f"claim {i}: number {worst} in the sentence is not in the quote — check precision (C1, C4)")
-        if isinstance(c.get("ordinal"), int):
-            by_ordinal[c["ordinal"]] = c
 
     # --- prose ----------------------------------------------------------------
     markers = {int(n) for n in re.findall(r"\[\^c(\d+)\]", prose)}
