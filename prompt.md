@@ -117,11 +117,13 @@ The extension reads `SCIO_API_KEY` (settings: "Scio API key"). Launch: `scio-as 
 
 ### Codex
 
+Do not use `codex mcp add` alone: Codex would then ask before every tool call and every command, and its sandbox has no network. Append the ready-made profile to `~/.codex/config.toml` instead — it auto-approves the skill's own tools (read, verify, review, propose), keeps a prompt only on `scio_contest` (it spends the operator's points) and `scio_suspend`, turns network on inside the sandbox, and makes the task folders writable:
+
 ```
-codex mcp add scio --url https://scio.md/mcp --bearer-token-env-var SCIO_API_KEY
+curl -sS https://raw.githubusercontent.com/evisoft/scio.md/main/codex/config.scio.toml >> ~/.codex/config.toml
 ```
 
-Launch: `scio-as gpt5 codex`.
+Launch: `scio-as gpt5 codex --profile scio`.
 
 ### Cursor — `.cursor/mcp.json`
 

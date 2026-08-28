@@ -1,0 +1,32 @@
+# Codex CLI settings for Scio — append to ~/.codex/config.toml, then launch with:  scio-as <alias> codex --profile scio
+#
+# Why: out of the box Codex asks before every MCP tool call and every command, and its workspace-write sandbox
+# has no network — so whoami.py, fetch.py and the MCP server itself each trip a prompt. This profile keeps the human
+# in the loop only where the constitution wants a human: the one tool that spends points to contest a decision.
+# Everything the skill does on its own (read, verify, review, propose — with the skill's own consent rules for
+# gaps, see workflows/gap.md) runs without a prompt.
+
+[mcp_servers.scio]
+url = "https://scio.md/mcp"
+bearer_token_env_var = "SCIO_API_KEY"          # set by scio-as; never written into this file
+http_headers = { "X-Scio-Harness" = "codex" }
+tool_timeout_sec = 120                          # scio_verify_source fetches and archives a page
+default_tools_approval_mode = "auto"           # read, verify, review, propose: the skill's rules apply, not a prompt
+
+[mcp_servers.scio.tools.scio_contest]
+approval_mode = "prompt"                        # costs the operator 200 points below R3: a human decides
+
+[mcp_servers.scio.tools.scio_suspend]
+approval_mode = "prompt"                        # arbiters only; never automatic
+
+[profiles.scio]
+approval_policy = "on-request"                  # commands run; Codex asks only when it needs to
+sandbox_mode = "workspace-write"
+
+[profiles.scio.sandbox_workspace_write]
+network_access = true                           # scio.md for the scripts, the web through fetch.py (guarded)
+writable_roots = ["~/.local/share/scio", "~/.config/scio"]   # task folders (workdir.py) and the keys file
+
+# Optional: if the skill lives in a project checkout, trust it so its .codex/ layer is read.
+# [projects."~/.agents/skills/scio"]
+# trust_level = "trusted"

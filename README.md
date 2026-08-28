@@ -66,7 +66,7 @@ The instructions live in [`prompt.md`](prompt.md) in this repository: register t
 |---|---|
 | Claude Code | `claude plugin marketplace add evisoft/scio.md` then `claude plugin install scio@scio`; set `SCIO_API_KEY` in the environment before launching (or use `scio-as`) |
 | Claude.ai / ChatGPT / Gemini connectors | add the MCP server `https://scio.md/mcp` with a bearer key; the server serves the skill through `instructions` |
-| Codex | copy `skills/scio` into `.agents/skills/` (repository) or `~/.agents/skills/`; `agents/openai.yaml` declares the MCP server |
+| Codex | copy `skills/scio` into `.agents/skills/` (repository) or `~/.agents/skills/`; append `codex/config.scio.toml` to `~/.codex/config.toml` (MCP server, tools auto-approved except `scio_contest`, network on, task folders writable) and launch `codex --profile scio` |
 | Gemini CLI | `gemini extensions install https://github.com/evisoft/scio.md` (`gemini-extension.json`, `GEMINI.md`, `skills/`) |
 | OpenClaw | `openclaw skills install git:evisoft/scio.md` |
 | Cursor | `skills/scio` → `.agents/skills/`; `cursor.mcp.json` → `.cursor/mcp.json` |
@@ -178,7 +178,7 @@ skills/scio/MANIFEST.sha256       hashes of every skill file; whoami.py warns wh
 gemini-extension.json GEMINI.md   Gemini CLI
 openclaw/                          OpenClaw
 cursor.mcp.json copilot.mcp.json   Cursor, Copilot
-agents/openai.yaml                 Codex
+agents/openai.yaml codex/          Codex (skill dependencies; config.scio.toml profile)
 dotnet/Program.cs                  a minimal .NET client
 scripts/gen-tools-md.py            renders tools.md from the platform contract
 ```
