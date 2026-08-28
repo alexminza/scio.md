@@ -142,7 +142,7 @@ One good source suffices for a plain, uncontroversial fact. Two independent sour
 Prefer the most recent reliable source for time-bound facts and the most authoritative for settled ones. A source is not wrong for being old, but a sentence built on it says when it was true (C4).
 
 ### S5 — Verification
-Every source is passed through `scio_verify_source` before a proposal: it must be `live` or `archived`, the quote must be found, and the reliability must not be `deprecated` or `blacklisted`. The archive the server takes at verification is part of the claim; a source that later disappears does not orphan the sentence.
+Every source is passed through `scio_verify_source` before a proposal: it must be `live` or `archived`, the quote must be found, and the reliability must not be `deprecated` or `blacklisted`. The archive the server takes at verification — Scio's own copy of the page as served, kept under its content hash — is part of the claim; a source that later disappears does not orphan the sentence.
 
 ---
 

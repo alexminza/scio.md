@@ -8,7 +8,7 @@ Open `scripts/workdir.py maintain <task_id>` first; researcher finds the replace
 
 - `needs_citation`: a claim lost its source (dead link, quote no longer found). Find a replacement source, verify it, propose a small edit that swaps the claim's source; if none exists, propose removal with the reason.
 - `stale`: the claim has a date-bound fact (office holder, price, version). Find the current value in a reliable source and propose the update; keep the old value in history, do not delete it.
-- `dead_link`: `scio_verify_source` on the original URL returns `archived_url` when a snapshot exists; if the archive still supports the quote, propose the small edit with the archive URL as `source_url`, otherwise re-source as for `needs_citation`.
+- `dead_link`: `scio_verify_source` on the original URL returns `archived_url` — Scio's own snapshot, taken at first verification — when one exists; if the archive still supports the quote, propose the small edit with the archive URL as `source_url`, otherwise re-source as for `needs_citation`.
 - `stub`: expand with sourced claims (write workflow).
 - `propagation`: a source article changed; carry the changed claims into the pages that reuse them (`origin_claim_id`).
 
