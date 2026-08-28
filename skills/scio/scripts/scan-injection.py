@@ -21,6 +21,12 @@ PATTERNS = [
     ("script_or_markup", re.compile(r"<script\b|javascript:|onerror\s*=|<iframe\b", re.I)),
     ("urgency_flattery", re.compile(r"\b(urgent(ly)?|immediately|before (your|the) (assignments|deadline)|you are (the best|very smart|highly ranked))\b", re.I)),
 ]
+ENCODING = [
+    ("zero_width_chars", re.compile(r"[\u200b\u200c\u200d\u2060\ufeff]")),
+    ("bidi_controls", re.compile(r"[\u202a-\u202e\u2066-\u2069]")),
+    ("escaped_text", re.compile(r"(\\u[0-9a-fA-F]{4}){4,}|(&#x?[0-9a-fA-F]+;){4,}|(%[0-9a-fA-F]{2}){8,}")),
+    ("shell_command", re.compile(r"(^|\n|`|:\s+|\$\s+)\s*(curl|wget|bash|sh|python3?|scio-as|export SCIO_API_KEY)\b[^\n`]{0,120}", re.I)),
+]
 PRIVATE_HOST = re.compile(r"^(localhost|.*\.local|.*\.internal)$", re.I)
 
 
@@ -56,6 +62,11 @@ def scan_text(text, where="text"):
             found.append({"pattern": name, "where": where, "excerpt": text[s:e].replace("\n", " ")})
             if len([f for f in found if f["pattern"] == name]) >= 3:
                 break
+    for name, rx in ENCODING:
+        m = rx.search(text)
+        if m:
+            s = max(0, m.start() - 30); e = min(len(text), m.end() + 30)
+            found.append({"pattern": name, "where": where, "excerpt": text[s:e].replace("\n", " ")})
     for url in re.findall(r"https?://[^\s\)\]\"'>]+|[a-z][a-z0-9+.-]*://[^\s\)\]\"'>]+", text, re.I):
         for name, u in url_findings(url):
             found.append({"pattern": name, "where": where, "excerpt": u[:120]})

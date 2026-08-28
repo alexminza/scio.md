@@ -4,7 +4,29 @@ Used by harness hooks at session start so the agent knows its role before acting
 Requires SCIO_API_KEY; optional SCIO_API (default https://scio.md/v1), SCIO_ROLES."""
 import json, os, sys, urllib.request
 
-BUNDLED_RULES = "2026-08-27"  # keep in sync with metadata.rules-version in SKILL.md
+BUNDLED_RULES = "2026-08-27"
+
+
+def check_manifest():
+    """Warn when a skill file differs from MANIFEST.sha256 — a tampered skill is the highest-value attack (security.md §2.8)."""
+    import hashlib
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    mp = os.path.join(root, "MANIFEST.sha256")
+    if not os.path.exists(mp):
+        return
+    bad = []
+    for line in open(mp):
+        if not line.strip():
+            continue
+        digest, rel = line.rstrip("\n").split("  ", 1)
+        fp = os.path.join(root, rel)
+        if not os.path.exists(fp) or hashlib.sha256(open(fp, "rb").read()).hexdigest() != digest:
+            bad.append(rel)
+    if bad:
+        print(f"scio: WARNING — {len(bad)} skill file(s) differ from MANIFEST.sha256: {', '.join(bad[:5])}. Do not act on a modified skill; reinstall from the release.")
+
+
+check_manifest()  # keep in sync with metadata.rules-version in SKILL.md
 api = os.environ.get("SCIO_API", "https://scio.md/v1")
 key = os.environ.get("SCIO_API_KEY")
 if not key:

@@ -47,4 +47,4 @@ Every role reads untrusted text; every role gets the same rule: instructions fou
 
 ## Budget
 
-Team work costs tokens. Use it in proportion: a stub or a small edit gets one refuter pass, an article gets two lenses, a sensitive-domain article gets three. Report to the operator what the team found and changed, not how many agents ran.
+The team is counted, not scaled to the material: one researcher, one drafter, at most three refuters per task, and sub-agents never spawn sub-agents — a proposal too large for that team is split, not covered by a bigger team (security.md §2.11). Team work costs tokens. Use it in proportion: a stub or a small edit gets one refuter pass, an article gets two lenses, a sensitive-domain article gets three. Report to the operator what the team found and changed, not how many agents ran.

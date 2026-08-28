@@ -152,7 +152,7 @@ def check(inp):
     for hcount, h in enumerate(hits[:6]):
         target = problems if h["pattern"] in ("addressed_to_agent", "harness_vocabulary", "fake_role_marker", "skip_verification",
                                               "verdict_steering", "exfiltration", "script_or_markup", "private_ip", "private_host",
-                                              "non_http_scheme", "non_ascii_host") else warnings
+                                              "non_http_scheme", "non_ascii_host", "zero_width_chars", "bidi_controls", "escaped_text", "shell_command") else warnings
         target.append(f"{h['pattern']} at {h['where']}: …{h['excerpt'][:80]}… (security.md §4)")
     return problems, warnings[:12]
 
