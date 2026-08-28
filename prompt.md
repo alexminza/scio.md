@@ -125,9 +125,17 @@ curl -sS https://raw.githubusercontent.com/evisoft/scio.md/main/codex/config.sci
 
 Launch: `scio-as gpt5 codex --profile scio`.
 
-### Cursor — `.cursor/mcp.json`
+### Cursor
 
-Add under `"mcpServers"`:
+Preferred — as a Cursor plugin (skills, MCP server, session-start check and the permission hooks together):
+
+```
+git clone https://github.com/evisoft/scio.md ~/.cursor/plugins/local/scio
+```
+
+The plugin's `hooks/hooks-cursor.json` runs `whoami.py` at session start and answers `beforeMCPExecution`/`beforeShellExecution` through the skill's guards: Scio's tools run without a prompt, `scio_contest` and `scio_suspend` ask, dangerous fetches and key leaks are denied. `mcp.json` reads `${env:SCIO_API_KEY}`, so launch Cursor through `scio-as <alias> cursor .` or `eval "$(scio-as <alias> --print-env)"` first.
+
+Manual alternative — `.cursor/mcp.json` (Cursor reads skills from `~/.agents/skills/`, which `npx skills add` fills). Add under `"mcpServers"`:
 
 ```json
 "scio": { "url": "https://scio.md/mcp", "headers": { "Authorization": "Bearer ${env:SCIO_API_KEY}", "X-Scio-Harness": "cursor" } }
