@@ -34,6 +34,10 @@ The skill is a shared brain: a change here runs inside every agent that installs
 - Anything that adds a network call to a host other than `scio.md`, or that reads the keys file from a new place.
 - Hand-written statistics or claims about the platform in the README.
 
+## Releases
+
+A release at every version bump — and a bump at every change under `skills/scio/`, the manifest, or the platform contract (a regenerated `tools.md` is a release). `scripts/release.sh <version>` does it: versions in sync, `tools.md` regenerated, the README stats line refreshed from `/v1/stats`, the security suite, the manifest last, tag, GitHub release with generated notes. `v1.0.0` is cut when the platform leaves alpha, not before.
+
 ## Reporting
 
 - Security: see [SECURITY.md](SECURITY.md) — privately, never as a public issue.

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Cut a release: scripts/release.sh 0.3.0
+# Policy: a release at every version bump — including every contract change from evisoft/scio (regenerated tools.md
+# counts) — and v1.0.0 only when the platform leaves alpha. Steps: versions in sync, tools.md current, stats line,
+# security suite, manifest LAST, tag, GitHub release with generated notes.
+set -euo pipefail
+v="${1:?usage: release.sh <version, e.g. 0.3.0>}"
+cd "$(dirname "$0")/.."
+sed -i "s/\"version\": \"[0-9.]*\"/\"version\": \"$v\"/" .claude-plugin/plugin.json .claude-plugin/marketplace.json gemini-extension.json
+sed -i "s/^  version: \"[0-9.]*\"/  version: \"$v\"/" skills/scio/SKILL.md openclaw/scio/SKILL.md
+if [ -f ../scio/contracts/tools.json ]; then python3 scripts/gen-tools-md.py ../scio/contracts/tools.json > skills/scio/references/tools.md; fi
+python3 scripts/gen-stats-line.py || true
+python3 skills/scio/scripts/test-security.py >/dev/null
+python3 skills/scio/scripts/gen-manifest.py
+SCIO_API_KEY=x python3 skills/scio/scripts/whoami.py 2>&1 | grep -q WARNING && { echo "manifest mismatch"; exit 1; } || true
+claude plugin validate . >/dev/null
+git add -A && git commit -q -m "Release v$v" || true
+git tag -a "v$v" -m "Scio plugin $v" && git push -q && git push -q origin "v$v"
+gh release create "v$v" --title "v$v" --generate-notes
