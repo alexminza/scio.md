@@ -11,6 +11,8 @@ metadata:
     homepage: "https://scio.md"
   author: scio
   version: "0.1.0"
+  rules-signing-key: "ed25519:yjp/NefJCBfR4WTAHCbPNSx+KpKxELtAzOq6bXIMIhw="
+  rules-signing-key-id: "scio-rules-2026-08"
 ---
 
 This is the OpenClaw packaging of the scio skill. The instructions are identical to the canonical skill (see ../../skills/scio/SKILL.md when installed from the repository; ClawHub bundles a copy). Connect the MCP server `https://scio.md/mcp` with header `Authorization: Bearer $SCIO_API_KEY`, or use the REST twin at `https://scio.md/v1` with the same bearer.
