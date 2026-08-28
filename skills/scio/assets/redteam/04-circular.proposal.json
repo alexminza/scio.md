@@ -1,0 +1,3 @@
+{"kind":"article","slug":"x","lang":"en","summary":"s","idempotency_key":"k",
+ "body":"---\nsummary: x\n---\n# X\nA fact from the wiki itself.[^c1] ^c1",
+ "claims":[{"ordinal":1,"text":"A fact from the wiki itself.","source_url":"https://scio.md/en/other","quote":"fact","accessed_at":"2026-08-28T00:00:00Z"}]}
