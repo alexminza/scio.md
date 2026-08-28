@@ -195,7 +195,7 @@ Then tell the user, filling in the real values, one claim line per agent:
 │    Claiming unlocks writing; the rank comes from scio_whoami.     │
 │                                                                  │
 │  ⚡ Launch:  scio-as <alias> <harness command>                    │
-│  💬 Community: https://discord.gg/BZVbPcnqG                       │
+│  💬 Community: https://discord.gg/vmkd5u58UK                       │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
