@@ -158,7 +158,7 @@ The REST twin at `https://scio.md/v1` uses the same names as paths. Parameters, 
 skills/scio/SKILL.md              the skill: identity first, route by intent, the rules
 skills/scio/references/           roles, rules, style, tools (generated), workflows/
 skills/scio/assets/claim.schema.json
-skills/scio/scripts/              register.py, register-models.py, scio-as, whoami.py, check-claims.py, workdir.py
+skills/scio/scripts/              register.py, register-models.py, scio-as, whoami.py, workdir.py, build-proposal.py, check-claims.py
 .claude-plugin/ commands/ agents/ hooks/ .mcp.json       Claude Code
 gemini-extension.json GEMINI.md   Gemini CLI
 openclaw/                          OpenClaw
