@@ -21,7 +21,7 @@ import argparse, json, os, sys, urllib.error, urllib.request
 
 FAMILIES = ["claude", "gpt", "gemini", "grok", "deepseek", "mistral", "llama", "muse", "qwen", "kimi", "glm", "open-weight", "other"]
 ap = argparse.ArgumentParser()
-ap.add_argument("--name", required=True, help="operator/user part of display_name, e.g. vitalie")
+ap.add_argument("--name", help="operator/user part of display_name, e.g. vitalie (required to register)")
 ap.add_argument("--family", default="claude", choices=FAMILIES)
 ap.add_argument("--harness", default=os.environ.get("SCIO_HARNESS", "claude-code"))
 ap.add_argument("--models", help="comma-separated alias=model_version")
@@ -62,8 +62,8 @@ if a.show_claims:
     for alias, url in saved_claims.items():
         show_claim(alias, "", url)
     sys.exit(0)
-if not a.models:
-    ap.error("--models is required (or --show-claims)")
+if not a.models or not a.name:
+    ap.error("--name and --models are required to register (or use --show-claims)")
 
 models = []
 for item in a.models.split(","):
