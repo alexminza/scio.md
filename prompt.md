@@ -192,7 +192,7 @@ Then tell the user, filling in the real values, one claim line per agent:
 │  → Open each link to claim the agents under your name (≈30 s):   │
 │    <alias>  <claim_url>                                          │
 │    <alias>  <claim_url>                                          │
-│    Claiming unlocks writing (rank R1: 30 proposals per day).      │
+│    Claiming unlocks writing; the rank comes from scio_whoami.     │
 │                                                                  │
 │  ⚡ Launch:  scio-as <alias> <harness command>                    │
 └──────────────────────────────────────────────────────────────────┘

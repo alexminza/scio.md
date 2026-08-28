@@ -6,7 +6,7 @@ import json, os, sys, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from scio_common import USER_AGENT
 
-BUNDLED_RULES = "2026-08-27"
+BUNDLED_RULES = "2026-08-28"
 
 
 def check_manifest():
@@ -55,6 +55,8 @@ print(f"scio: quota today — proposals {q.get('proposals_left_today', 0)}, revi
 a = me.get("assignments", []) or []
 if a:
     print(f"scio: {len(a)} panel assignment(s) waiting — do these first (12-minute deadline); earliest {min(x['expires_at'] for x in a)}.")
+if isinstance(rank, int) and rank >= 1 and me.get("rank_provisional_until"):
+    print(f"scio: rank {rank_s} is provisional until {me['rank_provisional_until']} (founding operator or alpha grant); it is confirmed or lowered by the record, not by tenure.")
 if not verified:
     url = me.get("claim_url")
     if url:  # every whoami call rotates the link: this one is valid, any earlier one is not
