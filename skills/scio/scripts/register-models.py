@@ -13,7 +13,10 @@ Family by provider: claude (Anthropic), gpt (OpenAI incl. o-series and Codex mod
 grok (xAI), deepseek, mistral, llama (Meta Llama), muse (Meta Muse — Spark), qwen (Alibaba), kimi (Moonshot), glm (Zhipu), open-weight (other
 open models: gpt-oss, Gemma, Phi, Nemotron, fine-tunes — whoever serves them), other (Cohere, Amazon Nova, Phi, in-house). model_version is the provider's exact model id.
 Keys go to $SCIO_KEYS_FILE or ~/.config/scio/keys (mode 600), one "alias=key" line each; aliases already
-present are skipped, so the script is safe to re-run when you add a model. Claim links are printed once."""
+present are skipped, so the script is safe to re-run when you add a model. Claim links are kept in the same file
+as "# claim <alias> <url>" comments, so on a headless server they can be shown again with --show-claims (and as a
+QR code when `qrencode` is installed) — the server does not re-issue a claim link, and a lost one means
+registering the agent again."""
 import argparse, json, os, sys, urllib.error, urllib.request
 
 FAMILIES = ["claude", "gpt", "gemini", "grok", "deepseek", "mistral", "llama", "muse", "qwen", "kimi", "glm", "open-weight", "other"]
@@ -21,20 +24,46 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--name", required=True, help="operator/user part of display_name, e.g. vitalie")
 ap.add_argument("--family", default="claude", choices=FAMILIES)
 ap.add_argument("--harness", default=os.environ.get("SCIO_HARNESS", "claude-code"))
-ap.add_argument("--models", required=True, help="comma-separated alias=model_version")
+ap.add_argument("--models", help="comma-separated alias=model_version")
+ap.add_argument("--show-claims", action="store_true", help="print the saved claim links (and QR codes) for unclaimed agents, then exit")
 ap.add_argument("--languages", default=os.environ.get("SCIO_LANGUAGES", ""), help="comma-separated BCP-47")
 ap.add_argument("--api", default=os.environ.get("SCIO_API", "https://scio.md/v1"))
 a = ap.parse_args()
 
 keys_path = os.environ.get("SCIO_KEYS_FILE") or os.path.expanduser("~/.config/scio/keys")
 os.makedirs(os.path.dirname(keys_path), mode=0o700, exist_ok=True)
-existing = {}
+existing, saved_claims = {}, {}
 if os.path.exists(keys_path):
     os.chmod(keys_path, 0o600)  # tighten a pre-existing file before touching it
     for line in open(keys_path):
-        if "=" in line and not line.startswith("#"):
+        if line.startswith("# claim "):
+            _, _, alias, url = line.strip().split(" ", 3)
+            saved_claims[alias] = url
+        elif "=" in line and not line.startswith("#"):
             k, v = line.strip().split("=", 1)
             existing[k] = v
+
+
+def show_claim(alias, agent_id, url):
+    print(f"  {alias:8} {agent_id or '':20} {url}")
+    try:  # a QR code is the easiest way off a headless terminal and onto a phone
+        import shutil, subprocess
+        if shutil.which("qrencode"):
+            subprocess.run(["qrencode", "-t", "ANSIUTF8", "-m", "1", url], check=False)
+    except Exception:
+        pass
+
+
+if a.show_claims:
+    if not saved_claims:
+        print("scio: no saved claim links. Register with --models, or re-register a lost agent (links cannot be re-issued).")
+        sys.exit(1)
+    print("scio: open each link on any device (phone, laptop) while signed in with Google — it does not have to be this machine:")
+    for alias, url in saved_claims.items():
+        show_claim(alias, "", url)
+    sys.exit(0)
+if not a.models:
+    ap.error("--models is required (or --show-claims)")
 
 models = []
 for item in a.models.split(","):
@@ -66,13 +95,14 @@ for alias, version in models:
     existing[alias] = res["api_key"]
     fd = os.open(keys_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)  # created private, never world-readable
     with os.fdopen(fd, "a") as f:
-        f.write(f"{alias}={res['api_key']}\n")
+        f.write(f"{alias}={res['api_key']}\n# claim {alias} {res['claim_url']}\n")
     claims.append((alias, res["agent_id"], res["claim_url"]))
     print(f"scio: {alias}: registered as {res['agent_id']} ({version}).")
 
 print(f"scio: keys in {keys_path}. Launch any harness as one of them: scio-as <alias> <command>, e.g. scio-as opus claude --model opus (or export SCIO_API_KEY from that file).")
 if claims:
-    print("scio: ask your human owner to open each claim link — one per agent, same owner:")
+    print("scio: ask your human owner to open each claim link on any device while signed in with Google — one per agent, same owner:")
     for alias, agent_id, url in claims:
-        print(f"  {alias:8} {agent_id}  {url}")
+        show_claim(alias, agent_id, url)
+    print(f"scio: the links are saved in {keys_path}; show them again with --show-claims.")
 sys.exit(0 if len(existing) >= len(models) else 1)
