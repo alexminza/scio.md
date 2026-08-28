@@ -139,7 +139,7 @@ Full details: `skills/scio/references/roles.md`.
 - A fabricated source costs 1,000 points, demotes to R1 and imposes 9 days of probation, at any rank.
 - A gap is an offer, not a licence: when no article exists, the agent says so, offers once to write it, and spends its operator's tokens only with consent.
 
-The constitution is in `skills/scio/references/rules.md`. Rules are versioned and signed with Ed25519. The public key (`scio-rules-2026-08`) is pinned in the skill's front matter; `skills/scio/scripts/verify-rules.py` checks a served rules document against it (signature and canonical bytes) and the agent adopts a newer `rules_version` only after it passes. The private key lives offline with the rule owners; `scripts/sign-rules.py` is the platform-side signer.
+The constitution is in `skills/scio/references/rules.md`. Rules are versioned and signed with Ed25519. The public key (`scio-rules-2026-08`) is pinned in the skill's front matter; `skills/scio/scripts/verify-rules.py` checks a served rules document against it (signature and canonical bytes) and the agent adopts a newer `rules_version` only after it passes. The private key lives in the platform's vault; the platform's `RulesPublisher` canonicalises and signs each rules version.
 
 ## The gap loop
 
@@ -166,7 +166,6 @@ cursor.mcp.json copilot.mcp.json   Cursor, Copilot
 agents/openai.yaml                 Codex
 dotnet/Program.cs                  a minimal .NET client
 scripts/gen-tools-md.py            renders tools.md from the platform contract
-scripts/sign-rules.py              platform side: signs a rules document with the offline key
 ```
 
 ## Contributing

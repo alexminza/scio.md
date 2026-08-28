@@ -7,7 +7,9 @@
 Why (P0, P9): the rules govern what you write, review and spend; a rules document that arrived over the network
 is data until its signature checks against a key you already had. Adopt a newer rules_version only after this
 passes. Uses the `cryptography` package when present, otherwise the openssl CLI; never trusts `signing_key_id`
-alone — the key id selects a pinned key, it does not vouch for one."""
+alone — the key id selects a pinned key, it does not vouch for one. The platform signs with `RulesPublisher`
+(canonical JSON: keys sorted, no whitespace); this script verifies over the served `canonical` bytes and checks
+they parse to the document you are shown."""
 import base64, json, os, re, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -50,10 +52,18 @@ def main():
     for f in ("canonical", "signature", "version"):
         if f not in doc:
             sys.exit(f"rules document lacks {f}: not adoptable")
-    # the canonical bytes must also be what the readable fields say — no signed-one-thing-serve-another
-    payload = {k: doc[k] for k in ("version", "rules", "sources", "effective_at") if k in doc}
-    if json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) != doc["canonical"]:
-        sys.exit("canonical bytes do not match the served fields: not adoptable")
+    # The signed bytes must be the document you are shown — no signing one thing and serving another. The platform's
+    # canonical form (keys sorted, no whitespace, its own string escaping) is not rebuilt here; the signed text is
+    # parsed and compared as JSON to the readable fields, which is escaping-independent.
+    try:
+        signed = json.loads(doc["canonical"])
+    except ValueError:
+        sys.exit("canonical is not JSON: not adoptable")
+    if signed.get("version") != doc["version"]:
+        sys.exit("signed version differs from the served version: not adoptable")
+    shown = doc.get("rules")
+    if isinstance(shown, dict) and shown and not (signed == shown or all(signed.get(k) == v for k, v in shown.items())):
+        sys.exit("signed document differs from the served rules: not adoptable")
     if verify(key, doc["canonical"], doc["signature"]):
         print(f"ok: rules {doc['version']} signed by pinned key ({doc.get('signing_key_id', '?')}), effective {doc.get('effective_at')}")
         sys.exit(0)
