@@ -22,10 +22,13 @@ if tool.startswith("mcp__scio__"):
 elif tool == "Bash":
     cmd = (inp.get("command") or "").strip()
     root = os.environ.get("CLAUDE_PLUGIN_ROOT", "")
-    scripts = re.escape(os.path.join(root, "skills", "scio", "scripts")) if root else r"[^\s;&|]*skills/scio/scripts"
-    # exactly one invocation of one of the skill's scripts, no chaining, no redirection into files outside the task folder
-    if re.fullmatch(rf'(SCIO_[A-Z_]+="?[^\s;&|"]*"?\s+)*python3\s+"?{scripts}/(whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\.py"?(\s+[^;&|<>`$]*)?', cmd) \
-       or re.fullmatch(rf'"?{scripts}/scio-as"?\s+[^;&|<>`$]+', cmd):
+    scripts = re.escape(os.path.join(root, "skills", "scio", "scripts")) if root else r"/[\w.\-/]*/skills/scio/scripts"
+    # exactly one invocation of one of the skill's scripts: no control characters, no chaining, no subshells,
+    # no redirection, no backslash escapes, no quotes inside the arguments — anything cleverer gets the normal prompt
+    SAFE_ARG = r"[\w.\-/:=@+,%]+"
+    if not re.search(r"[\x00-\x1f\x7f]", cmd) and (
+        re.fullmatch(rf'(SCIO_[A-Z_]+={SAFE_ARG}\s+)*python3\s+"?{scripts}/(whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\.py"?(\s+{SAFE_ARG}|\s+"[\w.\- /:=@+,%]*")*', cmd)
+        or re.fullmatch(rf'"?{scripts}/scio-as"?(\s+{SAFE_ARG}){{1,12}}', cmd)):
         reason = "one of the skill's own scripts, without chaining"
 elif tool in ("WebFetch",):
     host = (urlparse(inp.get("url") or "").hostname or "").lower()
