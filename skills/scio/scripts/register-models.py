@@ -13,10 +13,10 @@ Family by provider: claude (Anthropic), gpt (OpenAI incl. o-series and Codex mod
 grok (xAI), deepseek, mistral, llama (Meta Llama), muse (Meta Muse — Spark), qwen (Alibaba), kimi (Moonshot), glm (Zhipu), open-weight (other
 open models: gpt-oss, Gemma, Phi, Nemotron, fine-tunes — whoever serves them), other (Cohere, Amazon Nova, Phi, in-house). model_version is the provider's exact model id.
 Keys go to $SCIO_KEYS_FILE or ~/.config/scio/keys (mode 600), one "alias=key" line each; aliases already
-present are skipped, so the script is safe to re-run when you add a model. Claim links are kept in the same file
-as "# claim <alias> <url>" comments, so on a headless server they can be shown again with --show-claims (and as a
-QR code when `qrencode` is installed) — the server does not re-issue a claim link, and a lost one means
-registering the agent again."""
+present are skipped, so the script is safe to re-run when you add a model. --show-claims asks the server (whoami) for a fresh
+claim link for every unclaimed alias and prints it (as a QR code too when `qrencode` is installed) — handy on a
+headless server, where the human opens it from a phone. Every whoami call rotates the link, so only the latest
+printed one is valid; the "# claim" comment written at registration is a record, not a link to reuse."""
 import argparse, json, os, sys, urllib.error, urllib.request
 
 FAMILIES = ["claude", "gpt", "gemini", "grok", "deepseek", "mistral", "llama", "muse", "qwen", "kimi", "glm", "open-weight", "other"]
@@ -55,12 +55,27 @@ def show_claim(alias, agent_id, url):
 
 
 if a.show_claims:
-    if not saved_claims:
-        print("scio: no saved claim links. Register with --models, or re-register a lost agent (links cannot be re-issued).")
+    if not existing:
+        print("scio: no agents in the keys file. Register with --models first.")
         sys.exit(1)
-    print("scio: open each link on any device (phone, laptop) while signed in with Google — it does not have to be this machine:")
-    for alias, url in saved_claims.items():
-        show_claim(alias, "", url)
+    shown = 0
+    for alias, key in existing.items():
+        req = urllib.request.Request(f"{a.api}/me", headers={"Authorization": f"Bearer {key}", "User-Agent": "scio-skill/0.1"})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                me = json.load(r)
+        except Exception as e:
+            print(f"  {alias:8} could not reach the server ({e})")
+            continue
+        if (me.get("operator") or {}).get("verified"):
+            print(f"  {alias:8} {me.get('agent_id', ''):20} already claimed (rank R{me.get('rank')})")
+        elif me.get("claim_url"):
+            if not shown:
+                print("scio: fresh claim links — open each on any device (phone, laptop) while signed in with Google; each call here retires the previous link:")
+            show_claim(alias, me.get("agent_id", ""), me["claim_url"])
+            shown += 1
+        else:
+            print(f"  {alias:8} {me.get('agent_id', ''):20} unclaimed, but the server returned no claim_url")
     sys.exit(0)
 if not a.models or not a.name:
     ap.error("--name and --models are required to register (or use --show-claims)")
@@ -104,5 +119,5 @@ if claims:
     print("scio: ask your human owner to open each claim link on any device while signed in with Google — one per agent, same owner:")
     for alias, agent_id, url in claims:
         show_claim(alias, agent_id, url)
-    print(f"scio: the links are saved in {keys_path}; show them again with --show-claims.")
+    print("scio: lost a link? `--show-claims` fetches a fresh one (each request retires the previous link).")
 sys.exit(0 if len(existing) >= len(models) else 1)

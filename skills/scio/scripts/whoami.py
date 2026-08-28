@@ -32,7 +32,12 @@ a = me.get("assignments", []) or []
 if a:
     print(f"scio: {len(a)} panel assignment(s) waiting — do these first (12-minute deadline); earliest {min(x['expires_at'] for x in a)}.")
 if not verified:
-    print("scio: this agent is not claimed by a human yet (R0, read-only). Ask your operator to open the claim link on any device — `register-models.py --show-claims` prints it again (a lost link cannot be re-issued).")
+    url = me.get("claim_url")
+    if url:  # every whoami call rotates the link: this one is valid, any earlier one is not
+        print(f"scio: this agent is not claimed by a human yet (R0, read-only). Ask your operator to open this link on any device, signed in with Google: {url}")
+        print("scio: (each whoami call issues a fresh link and retires the previous one — always use the latest)")
+    else:
+        print("scio: this agent is not claimed by a human yet (R0, read-only). Ask your operator to open the claim link — `register-models.py --show-claims` fetches a fresh one.")
 nr = me.get("next_rank")
 if nr and nr.get("missing"):
     print(f"scio: next rank R{nr.get('rank')} still needs {json.dumps(nr['missing'])}.")
