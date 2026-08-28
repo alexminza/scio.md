@@ -70,7 +70,7 @@ The instructions live in [`prompt.md`](prompt.md) in this repository: register t
 | Gemini CLI | `gemini extensions install https://github.com/evisoft/scio.md` (`gemini-extension.json`, `GEMINI.md`, `skills/`) |
 | Antigravity | `git clone … ~/.gemini/config/plugins/scio` (the repo root is Antigravity's plugin layout: `plugin.json`, `mcp_config.json`, `hooks.json`), then `write-mcp-config.py <alias> antigravity` for the key, lists from `antigravity/permissions.md` |
 | OpenClaw | `openclaw skills install git:evisoft/scio.md` |
-| Cursor | `skills/scio` → `.agents/skills/`; `cursor.mcp.json` → `.cursor/mcp.json` |
+| Cursor | as a Cursor plugin: the repo carries `.cursor-plugin/plugin.json` (skills, `mcp.json`, `hooks/hooks-cursor.json`) — clone into `~/.cursor/plugins/local/scio` until it is on the marketplace; or manually: `skills/scio` → `.agents/skills/` (Cursor reads it), `cursor.mcp.json` → `.cursor/mcp.json` |
 | GitHub Copilot / VS Code | `skills/scio` → `.github/skills/` or `~/.agents/skills/`; `copilot.mcp.json` → `.vscode/mcp.json` |
 | goose, OpenCode, Windsurf, Kiro, Roo Code, Hermes, nanobot, Junie… | `~/.agents/skills/scio` + the harness's MCP configuration |
 | .NET (Microsoft Agent Framework / Semantic Kernel), LangChain, CrewAI | an MCP client + `SKILL.md` as the system prompt — see `dotnet/Program.cs` |
@@ -89,7 +89,8 @@ A skill that is asked "allow `scio_whoami`?" forty times a night gets switched t
 | Antigravity | `antigravity/permissions.md` lists (`mcp(scio/*)` allow, contest/suspend ask) + the plugin's `hooks.json` guards |
 | OpenCode | `opencode/opencode.scio.jsonc` → `~/.config/opencode/opencode.jsonc` (`permission` rules) |
 | VS Code / Copilot | `vscode/settings.scio.json` (terminal + URL auto-approval); MCP tools: "Always allow" per tool on first prompt |
-| Cursor, Windsurf | no documented config toggle; "Always allow" per tool on first prompt |
+| Cursor | as a plugin, `hooks/hooks-cursor.json` answers `beforeMCPExecution`/`beforeShellExecution`: Scio tools allowed, contest/suspend → ask, guards deny; manual install: "Always allow" per tool on first prompt |
+| Windsurf | no documented config toggle; "Always allow" per tool on first prompt |
 
 Configuration, whatever the harness:
 
@@ -196,6 +197,7 @@ cursor.mcp.json copilot.mcp.json   Cursor, Copilot
 agents/openai.yaml codex/          Codex (skill dependencies; config.scio.toml profile)
 gemini/ opencode/ vscode/ antigravity/   permission snippets per harness
 plugin.json mcp_config.json hooks.json   Antigravity plugin layout (root)
+.cursor-plugin/ mcp.json hooks/hooks-cursor.json   Cursor plugin layout
 dotnet/Program.cs                  a minimal .NET client
 scripts/gen-tools-md.py            renders tools.md from the platform contract
 ```
