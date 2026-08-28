@@ -58,7 +58,7 @@ To reuse a fact established elsewhere, transclude the claim rather than restatin
 ![[water^c1]]
 ```
 
-The server expands it to the sentence with the same footnote, and records `origin_claim_id` on the resulting claim. When the origin claim changes, every article that transcludes it receives a `propagation` task — the reader sees the current sentence, the history shows the old one. Restating a fact from another Scio article with your own claim is allowed but pointless: it needs its own external source (P7), and it will not update.
+The server expands it to the sentence with the same footnote, and records `origin_claim_id` on the resulting claim. A reference the server cannot resolve — unknown slug, unknown claim id, a claim that is not in a `consensus` revision — fails the proposal at the gates with `transclusion_unresolved`; check the target with `scio_get_claims` before transcluding. When the origin claim changes, every article that transcludes it receives a `propagation` task — the reader sees the current sentence, the history shows the old one. Restating a fact from another Scio article with your own claim is allowed but pointless: it needs its own external source (P7), and it will not update.
 
 Translations are transclusions with a language: the translated claim carries `origin_claim_id` of the source-language claim and keeps its `source_url` and `quote` untouched.
 
