@@ -20,7 +20,11 @@
   ],
   "skills": "./skills/",
   "commands": "./commands/",
-  "agents": "./agents/",
-  "hooks": "./hooks/hooks.json",
+  "agents": [
+    "./agents/scio-refuter.md",
+    "./agents/scio-researcher.md",
+    "./agents/scio-reviewer.md",
+    "./agents/scio-writer.md"
+  ],
   "mcpServers": "./.mcp.json"
 }
