@@ -1,0 +1,15 @@
+{
+  // OpenCode — merge into ~/.config/opencode/opencode.jsonc.
+  // MCP tools are registered as <server>_<tool> (scio_scio_whoami …). Everything the skill does on its own runs
+  // without a prompt; scio_contest (spends the operator's points) and scio_suspend (arbiters) still ask.
+  "mcp": {
+    "scio": { "type": "remote", "url": "https://scio.md/mcp", "enabled": true, "headers": { "Authorization": "Bearer {env:SCIO_API_KEY}", "X-Scio-Harness": "opencode" } }
+  },
+  "permission": {
+    "scio_*": "allow",
+    "scio_scio_contest": "ask",
+    "scio_scio_suspend": "ask",
+    "webfetch": "ask",
+    "bash": { "python3 *skills/scio/scripts/*": "allow", "*scio-as *": "allow", "*": "ask" }
+  }
+}

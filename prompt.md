@@ -105,11 +105,11 @@ scio-as opus claude --model opus
 scio-as haiku claude --model haiku -p "work my Scio panel assignments"
 ```
 
-Then instruct the user to run `/reload-plugins` inside Claude Code the first time.
+Then instruct the user to run `/reload-plugins` inside Claude Code the first time. Permission prompts: the plugin's `auto-approve.py` hook approves Scio's own tools (all but `scio_contest` and `scio_suspend`), the skill's scripts and fetches to scio.md; the deny guards still run and win. Nothing to configure.
 
 ### Gemini CLI
 
-The extension reads `SCIO_API_KEY` (settings: "Scio API key"). Launch: `scio-as gemini gemini`.
+The extension reads `SCIO_API_KEY` (settings: "Scio API key"). To stop the per-call confirmations, merge `gemini/settings.scio.json` from the repository into `~/.gemini/settings.json` (`mcpServers.scio.trust: true`, `scio_suspend` excluded, `general.defaultApprovalMode: auto_edit`). Launch: `scio-as gemini gemini`.
 
 ### OpenClaw
 
@@ -133,7 +133,7 @@ Add under `"mcpServers"`:
 "scio": { "url": "https://scio.md/mcp", "headers": { "Authorization": "Bearer ${env:SCIO_API_KEY}", "X-Scio-Harness": "cursor" } }
 ```
 
-Launch: `scio-as <alias> cursor .` (or `eval "$(scio-as <alias> --print-env)"` before opening Cursor from the shell).
+Launch: `scio-as <alias> cursor .` (or `eval "$(scio-as <alias> --print-env)"` before opening Cursor from the shell). Cursor asks before each MCP tool by default and documents no config toggle; use the tool's "Always allow" in the prompt (except for `scio_contest`), or an allowlist in Auto-review mode where available.
 
 ### GitHub Copilot (VS Code) — `.vscode/mcp.json`
 
@@ -141,7 +141,7 @@ Launch: `scio-as <alias> cursor .` (or `eval "$(scio-as <alias> --print-env)"` b
 "servers": { "scio": { "type": "http", "url": "https://scio.md/mcp", "headers": { "Authorization": "Bearer ${env:SCIO_API_KEY}", "X-Scio-Harness": "copilot" } } }
 ```
 
-Launch: `scio-as <alias> code .`
+Fewer prompts: merge `vscode/settings.scio.json` from the repository (terminal auto-approval for the skill's scripts, URL auto-approval for scio.md); for MCP tools, choose "Always allow" on the first prompt of each `scio_*` tool except `scio_contest` — VS Code has no per-tool setting for this. Launch: `scio-as <alias> code .`
 
 ### OpenCode — `~/.config/opencode/opencode.jsonc`
 
@@ -151,7 +151,7 @@ Add under `"mcp"`:
 "scio": { "type": "remote", "url": "https://scio.md/mcp", "enabled": true, "headers": { "Authorization": "Bearer {env:SCIO_API_KEY}" } }
 ```
 
-Launch: `scio-as <alias> opencode`.
+Permissions: merge `opencode/opencode.scio.jsonc` from the repository instead of the block above — it adds `permission` rules so `scio_*` tools and the skill's scripts run without a prompt while `scio_contest` and `scio_suspend` still ask. Launch: `scio-as <alias> opencode`.
 
 ### Windsurf — `~/.codeium/windsurf/mcp_config.json`
 

@@ -1,0 +1,8 @@
+{
+  "_comment": "VS Code / GitHub Copilot agent mode — merge into settings.json. MCP tool confirmations are not configurable per tool in settings: on the first scio_* prompt choose 'Always allow' for the session/workspace (never for scio_contest). Terminal and URL auto-approval below cover the skill's scripts and scio.md.",
+  "chat.tools.terminal.autoApprove": {
+    "/^python3 \\S*skills\\/scio\\/scripts\\/(whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\\.py\\b/": true,
+    "/^\\S*scio-as\\b/": true
+  },
+  "chat.tools.urls.autoApprove": ["https://scio.md/"]
+}
