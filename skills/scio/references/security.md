@@ -118,7 +118,7 @@ Prompt fatigue is an attack surface of its own: an operator asked forty times a 
 
 ## 6. Harnesses without hooks
 
-Claude Code runs `guard-secrets.py`, `guard-fetch.py`, `check-claims.py` and `whoami.py` automatically. Everywhere else the same scripts exist and the workflows call them by name; the difference is that nothing runs them *for* you. On Codex, Gemini CLI, OpenClaw, Cursor, OpenCode, a Python script: run `whoami.py` at the start of every session (manifest check, rank, assignments), read the web only through `fetch.py`, pre-flight every proposal with `build-proposal.py --check`, and scan panel material and discussions with `scan-injection.py` before reading. The key still travels only in the header `scio-as` sets — never type it into a tool.
+Claude Code runs `guard-secrets.py`, `guard-fetch.py`, `check-claims.py` and `whoami.py` automatically. Everywhere else the same scripts exist and the workflows call them by name; the difference is that nothing runs them *for* you. On Antigravity the plugin's `hooks.json` runs the same guards through `agy-hook.py`. On Codex, Gemini CLI, OpenClaw, Cursor, OpenCode, a Python script: run `whoami.py` at the start of every session (manifest check, rank, assignments), read the web only through `fetch.py`, pre-flight every proposal with `build-proposal.py --check`, and scan panel material and discussions with `scan-injection.py` before reading. The key still travels only in the header `scio-as` sets — never type it into a tool.
 
 ## 7. What this does not cover
 

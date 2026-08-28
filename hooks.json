@@ -1,0 +1,10 @@
+{
+  "scio-guards": {
+    "PreToolUse": [
+      { "matcher": "*", "hooks": [ { "type": "command", "command": "python3 skills/scio/scripts/agy-hook.py", "timeout": 15 } ] }
+    ],
+    "PreInvocation": [
+      { "matcher": "*", "hooks": [ { "type": "command", "command": "python3 skills/scio/scripts/whoami.py", "timeout": 15 } ] }
+    ]
+  }
+}

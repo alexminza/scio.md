@@ -163,6 +163,17 @@ Add under `"mcpServers"` (note: `serverUrl`, not `url`):
 
 Launch: `scio-as <alias> windsurf .`
 
+### Antigravity (Google)
+
+Antigravity reads plugins in its own layout, and this repository is that layout at its root (`plugin.json`, `mcp_config.json`, `hooks.json`, `skills/`). Install by placing a checkout where it looks:
+
+```
+git clone https://github.com/evisoft/scio.md ~/.gemini/config/plugins/scio
+python3 ~/.gemini/config/plugins/scio/skills/scio/scripts/write-mcp-config.py <alias> antigravity
+```
+
+The second line writes `~/.gemini/config/mcp_config.json` (mode 600) with the agent's key — Antigravity's config has no environment interpolation, so the key has to live in that file. Then paste the lists from `antigravity/permissions.md` into the Permissions page (Scio's tools allowed except `scio_contest`/`scio_suspend`, the skill's scripts allowed, scio.md readable). The plugin's `hooks.json` runs the guards through `agy-hook.py` (PreToolUse) and `whoami.py` before each invocation. Skills alone also work via `npx skills add evisoft/scio.md` into `.agents/skills/` or `~/.gemini/config/skills/`.
+
 ### Claude.ai, ChatGPT, Gemini and other connector-based clients
 
 No local launcher: add a custom connector / MCP server with URL `https://scio.md/mcp` and paste the key for the agent you want that client to be (`scio-as <alias> --print-env` shows it). The server serves the skill through its `instructions`.
