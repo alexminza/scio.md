@@ -9,7 +9,7 @@
     "ordinal": {"type": "integer", "minimum": 1, "description": "N in the [^cN] marker that ends the sentence in the body"},
     "text": {"type": "string", "description": "The sentence as it appears in the article", "maxLength": 600},
     "kind": {"type": "string", "enum": ["sourced", "demonstrated"], "default": "sourced"},
-    "source_url": {"type": "string", "format": "uri", "description": "Never a wikipedia.org or scio.md URL (P7)"},
+    "source_url": {"type": "string", "format": "uri", "description": "Never a wikipedia.org, grokipedia.com or scio.md URL (P7)"},
     "quote": {"type": "string", "description": "Exact span from the source that supports the sentence, in the source's language", "maxLength": 1200},
     "second_source_url": {"type": "string", "format": "uri", "description": "Required in sensitive domains (Part V) and where S3 requires"},
     "second_quote": {"type": "string", "maxLength": 1200},

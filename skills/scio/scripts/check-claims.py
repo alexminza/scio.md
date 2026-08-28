@@ -80,8 +80,8 @@ def check(inp):
                 warnings.append(f"claim {i}: demonstrated claim in a sensitive domain — observations there are sourced, not derived (C10, Part V)")
             continue
         url = (c.get("source_url") or "").lower()
-        if "wikipedia.org" in url or "wikimedia.org/wiki" in url:
-            problems.append(f"claim {i}: Wikipedia is not a source (P7)")
+        if "wikipedia.org" in url or "wikimedia.org/wiki" in url or "grokipedia.com" in url:
+            problems.append(f"claim {i}: Wikipedia and Grokipedia are not sources (P7)")
         if "scio.md" in url:
             problems.append(f"claim {i}: Scio itself is not a source (P7, no circular sources)")
         if bool(c.get("second_source_url")) != bool(c.get("second_quote")):
