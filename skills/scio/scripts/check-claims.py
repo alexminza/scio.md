@@ -7,7 +7,10 @@ Two ways to run it:
   Any harness / by hand:       check-claims.py proposal.json   (the scio_propose_edit input) — prints problems,
                                exit 1 when any; exit 0 when clean.
 """
-import json, re, sys
+import json, os, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from importlib import import_module
+_scan = import_module("scan-injection")
 
 SENSITIVE = {"living_person", "health", "law", "politics"}
 UNDATED = re.compile(r"\b(recently|currently|nowadays|at present|these days|now|today|this year|last year|latest)\b", re.I)
@@ -144,6 +147,13 @@ def check(inp):
             warnings.append(f"vague quantity without a number: \"{s[:70]}…\" — use the source's figure (C4)")
     if fm and not fm.get("summary"):
         warnings.append("front matter has no summary")
+    # --- injection and steering (security.md §4): in the body it is a rejection at review, so block it here ---
+    hits = _scan.dedupe(_scan.scan_text(prose, "body") + _scan.scan_json(claims, "claims"))
+    for hcount, h in enumerate(hits[:6]):
+        target = problems if h["pattern"] in ("addressed_to_agent", "harness_vocabulary", "fake_role_marker", "skip_verification",
+                                              "verdict_steering", "exfiltration", "script_or_markup", "private_ip", "private_host",
+                                              "non_http_scheme", "non_ascii_host") else warnings
+        target.append(f"{h['pattern']} at {h['where']}: …{h['excerpt'][:80]}… (security.md §4)")
     return problems, warnings[:12]
 
 

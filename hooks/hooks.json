@@ -13,6 +13,16 @@
     ],
     "PreToolUse": [
       {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/scio/scripts/guard-secrets.py\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "mcp__scio__scio_propose_edit",
         "hooks": [
           {
