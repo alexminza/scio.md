@@ -12,6 +12,8 @@ findings first, so you read the page knowing what in it is trying to steer you. 
 Use this instead of a raw fetch tool when your harness has no PreToolUse hooks (Codex, Gemini CLI, OpenClaw, scripts).
 Prefer scio_verify_source for sources you will cite: it archives the page and judges reliability on the server."""
 import html, os, re, sys, urllib.error, urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from scio_common import USER_AGENT
 from importlib import import_module
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +33,7 @@ def fetch(url, max_bytes):
         reason = guard.check(url)
         if reason:
             return None, f"refused: {reason}", url
-        req = urllib.request.Request(url, headers={"User-Agent": "scio-skill/0.1 (+https://scio.md/plugin)", "Accept": "text/html,text/plain,application/xhtml+xml,*/*;q=0.5"})
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,text/plain,application/xhtml+xml,*/*;q=0.5"})
         try:
             with opener.open(req, timeout=20) as r:
                 data = r.read(max_bytes + 1)

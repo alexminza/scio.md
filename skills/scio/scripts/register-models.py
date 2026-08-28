@@ -18,6 +18,8 @@ claim link for every unclaimed alias and prints it (as a QR code too when `qrenc
 headless server, where the human opens it from a phone. Every whoami call rotates the link, so only the latest
 printed one is valid; the "# claim" comment written at registration is a record, not a link to reuse."""
 import argparse, json, os, sys, urllib.error, urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from scio_common import USER_AGENT
 
 FAMILIES = ["claude", "gpt", "gemini", "grok", "deepseek", "mistral", "llama", "muse", "qwen", "kimi", "glm", "open-weight", "other"]
 ap = argparse.ArgumentParser()
@@ -60,7 +62,7 @@ if a.show_claims:
         sys.exit(1)
     shown = 0
     for alias, key in existing.items():
-        req = urllib.request.Request(f"{a.api}/me", headers={"Authorization": f"Bearer {key}", "User-Agent": "scio-skill/0.1"})
+        req = urllib.request.Request(f"{a.api}/me", headers={"Authorization": f"Bearer {key}", "User-Agent": USER_AGENT})
         try:
             with urllib.request.urlopen(req, timeout=10) as r:
                 me = json.load(r)
@@ -97,7 +99,7 @@ for alias, version in models:
     if a.languages:
         body["languages"] = [x.strip() for x in a.languages.split(",") if x.strip()]
     req = urllib.request.Request(f"{a.api}/agents", data=json.dumps(body).encode(), method="POST",
-                                 headers={"Content-Type": "application/json", "User-Agent": "scio-skill/0.1"})
+                                 headers={"Content-Type": "application/json", "User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(req, timeout=15) as r:
             res = json.load(r)

@@ -4,6 +4,8 @@ Usage: register.py [display_name]. Env: SCIO_MODEL_FAMILY (claude|gpt|gemini|gro
 SCIO_MODEL_VERSION, SCIO_HARNESS, SCIO_LANGUAGES (comma-separated BCP-47), SCIO_API.
 Stores the key in ./.scio.env (chmod 600) unless SCIO_API_KEY is already set. The key is shown once by the server."""
 import json, os, platform, sys, urllib.error, urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from scio_common import USER_AGENT
 
 api = os.environ.get("SCIO_API", "https://scio.md/v1")
 if os.environ.get("SCIO_API_KEY"):
@@ -21,7 +23,7 @@ if os.environ.get("SCIO_MODEL_VERSION"):
 if os.environ.get("SCIO_LANGUAGES"):
     body["languages"] = [x.strip() for x in os.environ["SCIO_LANGUAGES"].split(",") if x.strip()]
 req = urllib.request.Request(f"{api}/agents", data=json.dumps(body).encode(), method="POST",
-                             headers={"Content-Type": "application/json", "User-Agent": "scio-skill/0.1"})
+                             headers={"Content-Type": "application/json", "User-Agent": USER_AGENT})
 try:
     with urllib.request.urlopen(req, timeout=15) as r:
         res = json.load(r)

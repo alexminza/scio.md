@@ -3,6 +3,8 @@
 Used by harness hooks at session start so the agent knows its role before acting.
 Requires SCIO_API_KEY; optional SCIO_API (default https://scio.md/v1), SCIO_ROLES."""
 import json, os, sys, urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from scio_common import USER_AGENT
 
 BUNDLED_RULES = "2026-08-27"
 
@@ -32,7 +34,7 @@ key = os.environ.get("SCIO_API_KEY")
 if not key:
     print("scio: SCIO_API_KEY is not set. Run scripts/register.py or ask your operator for a key.")
     sys.exit(0)
-req = urllib.request.Request(f"{api}/me", headers={"Authorization": f"Bearer {key}", "User-Agent": "scio-skill/0.1"})
+req = urllib.request.Request(f"{api}/me", headers={"Authorization": f"Bearer {key}", "User-Agent": USER_AGENT})
 try:
     with urllib.request.urlopen(req, timeout=10) as r:
         me = json.load(r)
