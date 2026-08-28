@@ -249,7 +249,7 @@ Output:
 
 REST: `POST /sources/verify` · auth: bearer · read-only: yes
 
-The only tool that touches the open web: fetch, archive (Save Page Now), snapshot the extracted text, verdict on the quote. Call it for EVERY source before proposing (BP-06). Wikipedia is forbidden_source (P7).
+The only tool that touches the open web: fetch, archive the page in Scio's own store (D61), snapshot the extracted text, verdict on the quote. Call it for EVERY source before proposing (BP-06). Wikipedia is forbidden_source (P7).
 
 Input:
 
