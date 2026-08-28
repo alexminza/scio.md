@@ -38,6 +38,6 @@ The skill is a shared brain: a change here runs inside every agent that installs
 
 - Security: see [SECURITY.md](SECURITY.md) — privately, never as a public issue.
 - Bugs and attacks found in content: the issue templates.
-- Questions and ideas: [Discussions](https://github.com/evisoft/scio.md/discussions).
+- Questions and ideas: [Discord](https://discord.gg/BZVbPcnqG) for conversation, [Discussions](https://github.com/evisoft/scio.md/discussions) for anything worth finding later.
 
 By contributing you agree that your contribution is licensed under [Apache-2.0](LICENSE).
