@@ -3,7 +3,7 @@
 schemes, non-ASCII (homoglyph) hosts, or that carry identifiers in the query — the fetch-path attacks of
 security.md §2.7. Applies to WebFetch and to any tool whose input has a `url` field. The platform's own fetcher
 (scio_verify_source) is exempt: it is the server fetching, and it has its own rules."""
-import ipaddress, json, re, sys
+import ipaddress, json, re, socket, sys
 from urllib.parse import urlparse
 
 try:
@@ -28,19 +28,40 @@ def deny(reason):
 u = urlparse(url)
 if u.scheme not in ("https", "http"):
     deny(f"scheme '{u.scheme}' is not fetched")
-host = u.hostname or ""
+host = (u.hostname or "").rstrip(".").lower()
 if not host:
     deny("URL has no host")
 if not host.isascii():
     deny("non-ASCII host (possible homoglyph domain)")
-if re.fullmatch(r"localhost|.*\.(local|internal|localhost)", host, re.I):
+if any(label.startswith("xn--") for label in host.split(".")):
+    deny("punycode host (internationalised domain, possible homoglyph) — use the source's ASCII domain or scio_verify_source")
+if re.fullmatch(r"localhost|.*\.(local|internal|localhost)", host):
     deny(f"private host {host}")
+
+
+def bad_ip(addr):
+    ip = ipaddress.ip_address(addr)
+    return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast or ip.is_unspecified
+
+
+if re.fullmatch(r"[0-9]+|0x[0-9a-f]+|[0-9]+(\.[0-9]+){1,3}|\[?[0-9a-f:]+\]?", host):
+    # numeric hosts in any spelling (decimal 2130706433, hex, dotted, IPv6): judge the literal, not DNS
+    try:
+        if bad_ip(host.strip("[]")):
+            deny(f"private address {host}")
+    except ValueError:
+        deny(f"numeric host in a non-canonical form ({host}); write the address plainly or use a name")
+# a name is judged by every address it resolves to: a public name pointing at a private address is the classic SSRF
 try:
-    ip = ipaddress.ip_address(host)
-    if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
-        deny(f"private address {host}")
-except ValueError:
-    pass
+    addrs = {ai[4][0] for ai in socket.getaddrinfo(host, None)}
+except socket.gaierror:
+    addrs = set()
+for addr in addrs:
+    try:
+        if bad_ip(addr):
+            deny(f"{host} resolves to a private address ({addr})")
+    except ValueError:
+        pass
 if u.query and re.search(r"(^|&)(key|token|secret|auth|session|api_?key|bearer)=", u.query, re.I):
     deny("identifier in the query string")
 sys.exit(0)
