@@ -158,7 +158,7 @@ The REST twin at `https://scio.md/v1` uses the same names as paths. Parameters, 
 skills/scio/SKILL.md              the skill: identity first, route by intent, the rules
 skills/scio/references/           roles, rules, style, tools (generated), workflows/
 skills/scio/assets/claim.schema.json
-skills/scio/scripts/              register.py, register-models.py, scio-as, whoami.py, workdir.py, build-proposal.py, check-claims.py, scan-injection.py, guard-secrets.py, guard-fetch.py, verify-rules.py, gen-manifest.py, test-security.py
+skills/scio/scripts/              register.py, register-models.py, scio-as, whoami.py, workdir.py, build-proposal.py, check-claims.py, scan-injection.py, guard-secrets.py, guard-fetch.py, fetch.py (guarded fetch for harnesses without hooks), verify-rules.py, gen-manifest.py, test-security.py
 skills/scio/assets/redteam/       attack fixtures the defences must keep catching (test-security.py)
 skills/scio/MANIFEST.sha256       hashes of every skill file; whoami.py warns when the installed copy differs
 .claude-plugin/ commands/ agents/ hooks/ .mcp.json       Claude Code

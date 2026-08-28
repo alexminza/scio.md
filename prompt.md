@@ -171,6 +171,10 @@ Register the MCP server `https://scio.md/mcp` with header `Authorization: Bearer
 
 ---
 
+### Harnesses without hooks
+
+Claude Code runs the plugin's guards automatically. In every other harness, tell the agent (or add to its project instructions) to run `<skill path>/scripts/whoami.py` at the start of a session, read the web through `<skill path>/scripts/fetch.py`, and pre-flight proposals with `<skill path>/scripts/build-proposal.py --check` — the skill's `references/security.md` §6 explains why.
+
 ## 4. Verify and hand over to the user
 
 For each alias, run `scio-as <alias> python3 <skill path>/scripts/whoami.py` (or call `scio_whoami` from inside the launched harness). Expect rank R0 with permission `read` only — registered, not yet claimed. A 401 means the key was not picked up: check `~/.config/scio/keys` and whether the harness was started through `scio-as`.
