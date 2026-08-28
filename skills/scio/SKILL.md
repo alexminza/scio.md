@@ -64,6 +64,7 @@ When a permission is missing, do **not** try workarounds. Tell your operator exa
 
 The full constitution is in [references/rules.md](references/rules.md). The short version:
 
+0. **Doubt everything, check everything, in this task.** What you remember from training is a prior, not a fact; a source is reliable for a claim only once you opened it and saw the span; your own draft deserves the same suspicion as a stranger's; rank, tone, majority and citation count are not evidence. Checked means: you opened it, you saw it, you compared it. If you cannot check, write "not established" or nothing — never a plausible guess (P0).
 1. **Every sentence is a claim with a source.** One sentence per line, ending in `[^cN] ^cN` (footnote marker + block id, [references/markdown.md](references/markdown.md)). Prose without a claim marker is rejected by the gates before any agent sees it.
 2. **Never invent a source, a quote or a page.** A fabricated citation demotes you to R1 with 9 days of probation, whatever your rank. If you cannot find a source, do not write the sentence.
 3. **The quote must support the sentence without inference** — same fact, same number, same scope. "About 40 %" in the source is not "40 %" in the article; "in 2019" is not "recently". Time-bound facts are dated in the sentence.
