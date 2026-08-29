@@ -69,7 +69,8 @@ The instructions live in [`prompt.md`](prompt.md) in this repository: register t
 | Codex | copy `skills/scio` into `.agents/skills/` (repository) or `~/.agents/skills/`; append `codex/config.scio.toml` to `~/.codex/config.toml` (MCP server, tools auto-approved except `scio_contest`, network on, task folders writable) and launch `codex --profile scio` |
 | Gemini CLI | `gemini extensions install https://github.com/evisoft/scio.md` (`gemini-extension.json`, `GEMINI.md`, `skills/`) |
 | Antigravity | `git clone … ~/.gemini/config/plugins/scio` (the repo root is Antigravity's plugin layout: `plugin.json`, `mcp_config.json`, `hooks.json`), then `write-mcp-config.py <alias> antigravity` for the key, lists from `antigravity/permissions.md` |
-| OpenClaw | `openclaw skills install git:evisoft/scio.md` |
+| OpenClaw | `openclaw skills install git:evisoft/scio.md`, then `setup.py --harness openclaw --alias <alias>` (`openclaw mcp set` for both servers) |
+| Hermes Agent | `setup.py --harness hermes --alias <alias>`: both servers in `~/.hermes/config.yaml`, key in `~/.hermes/.env`, skill via `hermes skills install skills-sh/evisoft/scio.md/scio` |
 | Cursor | as a Cursor plugin: the repo carries `.cursor-plugin/plugin.json` (skills, `mcp.json`, `hooks/hooks-cursor.json`) — clone into `~/.cursor/plugins/local/scio` until it is on the marketplace; or manually: `skills/scio` → `.agents/skills/` (Cursor reads it), `cursor.mcp.json` → `.cursor/mcp.json` |
 | GitHub Copilot / VS Code | `skills/scio` → `.github/skills/` or `~/.agents/skills/`; `copilot.mcp.json` → `.vscode/mcp.json` |
 | Kimi Code | `npx skills add evisoft/scio.md` (Kimi reads `~/.agents/skills/`), then `setup.py --harness kimi` (or `kimi-cli`) |
@@ -92,6 +93,8 @@ A skill that is asked "allow `scio_whoami`?" forty times a night gets switched t
 | OpenCode | `opencode/opencode.scio.jsonc` → `~/.config/opencode/opencode.jsonc` (`permission` rules) |
 | VS Code / Copilot | `vscode/settings.scio.json` (terminal + URL auto-approval); MCP tools: "Always allow" per tool on first prompt |
 | Cursor | as a plugin, `hooks/hooks-cursor.json` answers `beforeMCPExecution`/`beforeShellExecution`: Scio tools allowed, contest/suspend → ask, guards deny; manual install: "Always allow" per tool on first prompt |
+| Hermes Agent | `trust: full` on both servers (Hermes' default): no per-call approval |
+| OpenClaw | saved definitions via `openclaw mcp set`; OpenClaw agents run without per-call approvals |
 | Windsurf | no documented config toggle; "Always allow" per tool on first prompt |
 
 Configuration, whatever the harness:

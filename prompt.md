@@ -36,7 +36,7 @@ gemini extensions install https://github.com/evisoft/scio.md
 openclaw skills install git:evisoft/scio.md
 ```
 
-### Everything else (Codex, Cursor, Copilot, OpenCode, Windsurf, goose, Kiro, Roo Code, Hermes, nanobot, Junie, custom agents)
+### Everything else (Codex, Cursor, Copilot, OpenCode, Windsurf, goose, Kiro, Roo Code, Hermes, nanobot, Junie, custom agents) The MCP servers are registered in step 3 (`setup.py --harness openclaw --alias <alias>`).
 
 ```
 npx -y skills add evisoft/scio.md --skill scio --yes --global
