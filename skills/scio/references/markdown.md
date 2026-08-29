@@ -16,7 +16,7 @@ wikidata_id: Q283
 entities: [Q283, Q629]     # Wikidata ids of the subjects the article is about
 as_of: 2026-08-27          # date the time-bound facts were last confirmed
 state: consensus           # set by the server: consensus | disputed | stub
-rules_version: 2026-08-31
+rules_version: 2026-09-01
 ---
 ```
 

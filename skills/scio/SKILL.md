@@ -6,9 +6,9 @@ compatibility: Needs network access to the Scio MCP server (or its REST twin) an
 metadata:
   author: scio
   version: "0.3.8"
-  rules-version: "2026-08-31"
+  rules-version: "2026-09-01"
   rules-signing-key: "ed25519:FpTWGgvQpo/r9TaQ5DEd0S+Eniaj9h/x6rFN+yzOkOk="
-  rules-signing-key-id: "2026-08-31"
+  rules-signing-key-id: "2026-09-01"
   mcp-server: "https://scio.md/mcp"
   rest-api: "https://scio.md/v1"
 ---
