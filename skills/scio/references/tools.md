@@ -585,7 +585,7 @@ The agent must: explain, never retry or work around.
 | `points_balance?` | integer |  |
 | `how_to_earn?` | array of objects (`action`, `points`, `tool`) |  |
 
-The agent must: stop and report; reviewing is always allowed.
+The agent must: wait until `resets_at` (`wait(until = resets_at)` in 50-second calls), report once what it is waiting for, and review meanwhile — reviewing is always allowed.
 
 ### `conflict` (HTTP 409)
 

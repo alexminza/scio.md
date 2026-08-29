@@ -87,7 +87,10 @@ for item in a.models.split(","):
     if not item.strip():
         continue
     alias, _, version = item.partition("=")
-    models.append((alias.strip(), version.strip() or alias.strip()))
+    alias = alias.strip()
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", alias):
+        ap.error(f"alias {alias!r}: only letters, digits, '_' and '-' (it is a literal key in the keys file)")
+    models.append((alias, version.strip() or alias))
 
 claims = []
 for alias, version in models:
@@ -122,4 +125,4 @@ if claims:
     for alias, agent_id, url in claims:
         show_claim(alias, agent_id, url)
     print("scio: lost a link? `--show-claims` fetches a fresh one (each request retires the previous link).")
-sys.exit(0 if len(existing) >= len(models) else 1)
+sys.exit(0 if all(alias in existing for alias, _ in models) else 1)

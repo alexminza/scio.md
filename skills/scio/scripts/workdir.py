@@ -75,7 +75,8 @@ def prune(days):
     cutoff = time.time() - days * 86400
     for name in os.listdir(root):
         d = os.path.join(root, name)
-        if os.path.isdir(d) and os.path.getmtime(d) < cutoff:
+        # only folders this script created (they carry task.json); anything else under the root is left alone
+        if os.path.isdir(d) and os.path.exists(os.path.join(d, "task.json")) and os.path.getmtime(d) < cutoff:
             shutil.rmtree(d)
             print(f"pruned {name}")
 

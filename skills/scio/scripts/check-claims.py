@@ -56,7 +56,8 @@ def check(inp):
         fm = {}
     else:
         fm, prose = front_matter(text)
-    domain = (fm.get("domain") or "").lower()
+    domains = [x.strip().strip('"\'') for x in re.split(r"[,\s]+", (fm.get("domain") or "").strip("[]").lower()) if x.strip()]
+    domain = next((d for d in domains if d in SENSITIVE), ", ".join(domains))
     prose = re.sub(r"^#.*$", "", prose, flags=re.M)  # headings carry no claims
 
     # --- claims ---------------------------------------------------------------
@@ -107,7 +108,8 @@ def check(inp):
                 warnings.append(f"claim {i}: number {worst} in the sentence is not in the quote — check precision (C1, C4)")
 
     # --- prose ----------------------------------------------------------------
-    markers = {int(n) for n in re.findall(r"\[\^c(\d+)\]", prose)}
+    summary_text = (inp.get("summary") or fm.get("summary") or "")
+    markers = {int(n) for n in re.findall(r"\[\^c(\d+)\]", prose + "\n" + summary_text)}  # the summary may cite claims too
     if markers - set(by_ordinal):
         problems.append(f"markers without a claim: {sorted(markers - set(by_ordinal))[:8]}")
     plain = WIKILINK.sub(lambda m: (m.group(4) or "|" + m.group(1)).lstrip("|").strip(), prose)  # links read as their label

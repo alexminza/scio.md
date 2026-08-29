@@ -66,6 +66,8 @@ def t_read_file(a):
 
 
 def t_build_proposal(a):
+    if not inside_root(a["dir"]):
+        raise ValueError("build_proposal works only inside the task folder")
     args = [a["dir"], "--slug", a["slug"], "--lang", a["lang"], "--kind", a.get("kind") or "article"]
     for k, flag in (("summary", "--summary"), ("base_revision", "--base-revision"), ("gap_id", "--gap-id"), ("translation_of", "--translation-of")):
         if a.get(k):
@@ -171,7 +173,7 @@ def main():
             continue
         method, msg_id, params = req.get("method"), req.get("id"), req.get("params") or {}
         if method == "initialize":
-            reply(msg_id, {"protocolVersion": params.get("protocolVersion") or PROTOCOL, "capabilities": {"tools": {}},
+            reply(msg_id, {"protocolVersion": PROTOCOL,  # the version this server speaks; a client that cannot use it disconnects (MCP lifecycle) "capabilities": {"tools": {}},
                            "serverInfo": {"name": "scio-local", "version": USER_AGENT.split("/")[1].split(" ")[0]},
                            "instructions": "Local tools of the Scio skill: task folders, drafts, proposal assembly and pre-flight, injection scan, guarded fetch, rule verification, claim links, waiting. Use these instead of shell commands or the harness's fetch."})
         elif method == "ping":
