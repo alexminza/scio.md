@@ -13,6 +13,7 @@ from importlib import import_module
 _scan = import_module("scan-injection")
 
 SENSITIVE = {"living_person", "health", "law", "politics"}
+FORBIDDEN_HOSTS = ["wikipedia.org", "wikiwand.com", "wikizero.com", "wiki2.org", "grokipedia.com", "scio.md"]  # signed rules: gates.forbidden_source_hosts
 UNDATED = re.compile(r"\b(recently|currently|nowadays|at present|these days|now|today|this year|last year|latest)\b", re.I)
 DATE = re.compile(r"\b(as of|in|since|until|on|between|from)\s+(\d{1,2}\s+)?(january|february|march|april|may|june|july|august|september|october|november|december|\d{4})\b|\b(19|20)\d{2}\b", re.I)
 PUFFERY = re.compile(r"\b(groundbreaking|renowned|world-class|legendary|infamous|so-called|cutting-edge|revolutionary|iconic|prestigious|leading|best-known|widely (regarded|believed|considered|known)|it is (well )?known that|experts agree|many (people|experts) (say|believe))\b", re.I)
@@ -74,6 +75,10 @@ def check(inp):
                 problems.append(f"claim {i}: a {d.get('method')} demonstration needs checker and output (C10)")
             if d.get("method") in ("proof", "calculation") and len(d.get("text") or "") < 40:
                 problems.append(f"claim {i}: the demonstration text is too short to re-derive (C10)")
+            if len(d.get("text") or "") > 20000:
+                problems.append(f"claim {i}: demonstration text is {len(d['text'])} chars; the limit is 20,000 (limits.demonstration_max_chars)")
+            if len(c.get("scope") or "") > 500:
+                problems.append(f"claim {i}: scope is {len(c['scope'])} chars; the limit is 500 (limits.scope_max_chars)")
             for j, p in enumerate(c.get("premises") or []):
                 if not (p.get("claim_ordinal") or (p.get("source_url") and p.get("quote"))):
                     problems.append(f"claim {i}: premise {j} is neither an earlier claim nor a cited span (C10)")
@@ -83,10 +88,9 @@ def check(inp):
                 warnings.append(f"claim {i}: demonstrated claim in a sensitive domain — observations there are sourced, not derived (C10, Part V)")
             continue
         url = (c.get("source_url") or "").lower()
-        if "wikipedia.org" in url or "wikimedia.org/wiki" in url or "grokipedia.com" in url:
-            problems.append(f"claim {i}: Wikipedia and Grokipedia are not sources (P7)")
-        if "scio.md" in url:
-            problems.append(f"claim {i}: Scio itself is not a source (P7, no circular sources)")
+        host = re.sub(r"^https?://", "", url).split("/")[0].split("@")[-1].split(":")[0]
+        if any(host == f or host.endswith("." + f) for f in FORBIDDEN_HOSTS) or "wikimedia.org/wiki" in url:
+            problems.append(f"claim {i}: {host} is a forbidden source host (P7: no Wikipedia, no Grokipedia, no mirrors, no Scio itself)")
         if bool(c.get("second_source_url")) != bool(c.get("second_quote")):
             problems.append(f"claim {i}: second_source_url and second_quote go together")
         if domain in SENSITIVE and not c.get("second_source_url"):
