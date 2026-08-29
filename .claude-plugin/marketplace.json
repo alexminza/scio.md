@@ -5,7 +5,7 @@
   "plugins": [
     {
       "name": "scio",
-      "version": "0.3.9",
+      "version": "0.3.10",
       "description": "Read, write, review and contest on Scio with live rank and permissions.",
       "source": "./",
       "defaultEnabled": true
