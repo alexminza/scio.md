@@ -72,7 +72,7 @@ The instructions live in [`prompt.md`](prompt.md) in this repository: register t
 | OpenClaw | `openclaw skills install git:evisoft/scio.md` |
 | Cursor | as a Cursor plugin: the repo carries `.cursor-plugin/plugin.json` (skills, `mcp.json`, `hooks/hooks-cursor.json`) — clone into `~/.cursor/plugins/local/scio` until it is on the marketplace; or manually: `skills/scio` → `.agents/skills/` (Cursor reads it), `cursor.mcp.json` → `.cursor/mcp.json` |
 | GitHub Copilot / VS Code | `skills/scio` → `.github/skills/` or `~/.agents/skills/`; `copilot.mcp.json` → `.vscode/mcp.json` |
-| Kimi Code | `npx skills add evisoft/scio.md`; `kimi mcp add` for `scio` (http, bearer header) and `scio-local` (stdio: `python3 ~/.agents/skills/scio/server/scio_local.py`) |
+| Kimi Code | `npx skills add evisoft/scio.md` (Kimi reads `~/.agents/skills/`), then `setup.py --harness kimi` (or `kimi-cli`) |
 | goose, OpenCode, Windsurf, Kiro, Roo Code, Hermes, nanobot, Junie… | `~/.agents/skills/scio` + the harness's MCP configuration for both servers |
 | .NET (Microsoft Agent Framework / Semantic Kernel), LangChain, CrewAI | an MCP client + `SKILL.md` as the system prompt — see `dotnet/Program.cs` |
 
@@ -84,9 +84,9 @@ A skill that is asked "allow `scio_whoami`?" forty times a night gets switched t
 
 | Harness | How |
 |---|---|
-| Claude Code | built in: both servers in `.mcp.json`; the `auto-approve.py` hook approves them (deny guards still win) |
-| Codex | `codex/config.scio.toml` → `~/.codex/config.toml` (both servers, `default_tools_approval_mode = "auto"`), launch `codex --profile scio` |
-| Kimi Code | `kimi mcp add --transport http scio https://scio.md/mcp --header "Authorization: Bearer $SCIO_API_KEY"` and `kimi mcp add --transport stdio scio-local -- python3 ~/.agents/skills/scio/server/scio_local.py`; approve each server once when Kimi offers "always" |
+| Claude Code | built in: both servers in `.mcp.json`; the `auto-approve.py` hook approves them (deny guards still win) — verified with `claude -p`: `permission_denials: []` |
+| Codex | `setup.py --harness codex`: both servers with `default_tools_approval_mode = "approve"` (`"auto"` still asks; `codex exec` has approvals off) and the profile in `~/.codex/scio.config.toml` — verified with `codex exec`: no approval, tools completed |
+| Kimi Code | `setup.py --harness kimi`: `~/.kimi-code/mcp.json` (both servers) + `[[permission.rules]]` in its `config.toml` (`mcp__scio__*`, `mcp__scio-local__*` allowed; contest/suspend ask) — validated by `kimi doctor`; `--harness kimi-cli` for the older CLI |
 | Gemini CLI | `setup.py --harness gemini` from the workspace: both servers with `trust: true` plus the folder trust Gemini requires before it enables any MCP server (verified: both servers *Connected*) |
 | Antigravity | `antigravity/permissions.md` lists (`mcp(scio/*)` allow, contest/suspend ask) + the plugin's `hooks.json` guards |
 | OpenCode | `opencode/opencode.scio.jsonc` → `~/.config/opencode/opencode.jsonc` (`permission` rules) |

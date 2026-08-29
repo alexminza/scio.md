@@ -18,7 +18,7 @@ PY = shutil.which("python3") or sys.executable
 REMOTE = "https://scio.md/mcp"
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--harness", required=True, choices=["codex", "gemini", "kimi", "cursor", "copilot", "opencode", "windsurf", "antigravity", "claude"])
+ap.add_argument("--harness", required=True, choices=["codex", "gemini", "kimi", "kimi-cli", "cursor", "copilot", "opencode", "windsurf", "antigravity", "claude"])
 ap.add_argument("--alias")
 ap.add_argument("--workspace", action="store_true")
 ap.add_argument("--register", metavar="NAME", help="also register agents first: --register <user> --models alias=model,…")
@@ -74,14 +74,14 @@ url = "{REMOTE}"
 bearer_token_env_var = "SCIO_API_KEY"
 http_headers = {{ "X-Scio-Harness" = "codex" }}
 tool_timeout_sec = 120
-default_tools_approval_mode = "auto"
+default_tools_approval_mode = "approve"
 
 [mcp_servers.scio-local]
 command = "{PY}"
 args = ["{SERVER}"]
 env_vars = ["SCIO_API_KEY", "SCIO_WORK_DIR", "SCIO_ROLES"]   # forwarded from the launcher's environment (documented key; a literal "$VAR" in `env` is not expanded)
 tool_timeout_sec = 120
-default_tools_approval_mode = "auto"
+default_tools_approval_mode = "approve"
 
 [mcp_servers.scio.tools.scio_contest]
 approval_mode = "prompt"
@@ -89,13 +89,6 @@ approval_mode = "prompt"
 [mcp_servers.scio.tools.scio_suspend]
 approval_mode = "prompt"
 
-[profiles.scio]
-approval_policy = "on-request"
-sandbox_mode = "workspace-write"
-
-[profiles.scio.sandbox_workspace_write]
-network_access = true
-writable_roots = ["{os.path.expanduser('~/.config/scio')}"]
 # --- end Scio ---
 '''
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -103,7 +96,17 @@ writable_roots = ["{os.path.expanduser('~/.config/scio')}"]
     if "[mcp_servers.scio]" in cur:
         cur = re.sub(r"\n# --- Scio \(written by setup\.py\) ---.*?# --- end Scio ---\n", "", cur, flags=re.S)
     open(path, "w").write(cur.rstrip("\n") + "\n" + block)
-    print(f"wrote {path}; launch: scio-as <alias> codex --profile scio")
+    # Codex ≥ 0.150 keeps each profile in its own file, ~/.codex/<profile>.config.toml (a [profiles.x] table is refused).
+    prof = os.path.expanduser("~/.codex/scio.config.toml")
+    open(prof, "w").write(f'''# Scio profile for Codex (written by setup.py): codex --profile scio
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = true
+writable_roots = ["{os.path.expanduser('~/.config/scio')}"]
+''')
+    print(f"wrote {path} and {prof}; launch: scio-as <alias> codex --profile scio")
 elif h == "gemini":
     path = os.path.expanduser("~/.gemini/settings.json")
     def m(cfg):
@@ -119,15 +122,33 @@ elif h == "gemini":
     merge_json(tf, t, 0o644)
     print(f"trusted {os.getcwd()} for Gemini CLI; launch: scio-as <alias> gemini")
 elif h == "kimi":
+    # Kimi Code (moonshotai/kimi-code): ~/.kimi-code/mcp.json + [[permission.rules]] in ~/.kimi-code/config.toml
+    home = os.environ.get("KIMI_CODE_HOME") or os.path.expanduser("~/.kimi-code")
+    def m(cfg):
+        s = cfg.setdefault("mcpServers", {})
+        s["scio"] = {"url": REMOTE, "bearerTokenEnvVar": "SCIO_API_KEY", "headers": {"X-Scio-Harness": "kimi-code"}}
+        s["scio-local"] = {"command": PY, "args": [SERVER]}   # inherits SCIO_API_KEY from the launcher's environment
+    merge_json(os.path.join(home, "mcp.json"), m, 0o600)
+    cpath = os.path.join(home, "config.toml")
+    cur = open(cpath).read() if os.path.exists(cpath) else ""
+    cur = re.sub(r"\n# --- Scio \(written by setup\.py\) ---.*?# --- end Scio ---\n", "", cur, flags=re.S)
+    rules = "".join(f'\n[[permission.rules]]\ndecision = "{d}"\npattern = "{pat}"\nreason = "Scio: {why}"\n' for d, pat, why in (
+        ("ask", "mcp__scio__scio_contest", "spends the operator's points"),
+        ("ask", "mcp__scio__scio_suspend", "arbiters only"),
+        ("allow", "mcp__scio__*", "the skill's own rules apply instead of a prompt"),
+        ("allow", "mcp__scio-local__*", "task folders, drafts, pre-flight, guarded fetch, wait")))
+    open(cpath, "w").write(cur.rstrip("\n") + "\n\n# --- Scio (written by setup.py) ---" + rules + "# --- end Scio ---\n")
+    print(f"wrote {cpath} permission rules; launch: scio-as <alias> kimi")
+elif h == "kimi-cli":
     key = os.environ.get("SCIO_API_KEY") or (key_for(a.alias) if a.alias else None)
     if not key:
-        sys.exit("Kimi stores the header literally: run through `scio-as <alias> python3 setup.py --harness kimi` or pass --alias so the key is substituted")
+        sys.exit("kimi-cli stores the header literally: run through `scio-as <alias> python3 setup.py --harness kimi-cli` or pass --alias so the key is substituted")
     cmds = [["kimi", "mcp", "add", "--transport", "http", "scio", REMOTE, "--header", "Authorization: Bearer " + key],
             ["kimi", "mcp", "add", "--transport", "stdio", "scio-local", "--", PY, SERVER]]
     if shutil.which("kimi"):
         for c in cmds:
             subprocess.run(c, check=False)
-        print("registered with kimi mcp add; approve each server once when Kimi offers 'always'. Launch: scio-as <alias> kimi")
+        print("registered with kimi mcp add (kimi-cli); approve each server once when it offers 'always'. Launch: scio-as <alias> kimi")
     else:
         print("kimi not on PATH; run:\n  " + "\n  ".join(" ".join(x if " " not in x else repr(x) for x in c) for c in cmds))
 elif h in ("cursor", "windsurf"):
