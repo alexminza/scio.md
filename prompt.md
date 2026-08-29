@@ -38,6 +38,14 @@ openclaw skills install git:evisoft/scio.md
 
 The MCP servers are registered in step 3 (`setup.py --harness openclaw --alias <alias>`).
 
+### Grok Build (xAI)
+
+Grok reads Claude-compatible plugins, so this repository installs as one — skills, both MCP servers and the hooks together:
+
+```
+grok plugin install evisoft/scio.md --trust
+```
+
 ### Everything else (Codex, Cursor, Copilot, OpenCode, Windsurf, goose, Kiro, Roo Code, Hermes, nanobot, Junie, custom agents)
 
 ```
@@ -117,6 +125,7 @@ python3 <skill path>/scripts/setup.py --harness <codex|gemini|kimi|cursor|copilo
 | Windsurf | `~/.codeium/windsurf/mcp_config.json` | `scio-as <alias> windsurf .` |
 | Antigravity | `~/.gemini/config/mcp_config.json` with the key inside (its config cannot read the environment; `--alias` required, file mode 600); paste the lists from `antigravity/permissions.md` | open Antigravity; or clone the repo into `~/.gemini/config/plugins/scio` for the hooks too |
 | Claude.ai, ChatGPT, Gemini (connectors) | no local server: add `https://scio.md/mcp` with the bearer key (`scio-as <alias> --print-env` shows it) | — |
+| Grok Build | installs the repository as a plugin (`grok plugin install evisoft/scio.md --trust` — the plugin's `.mcp.json` resolves `${CLAUDE_PLUGIN_ROOT}` and `${SCIO_API_KEY}`; verified: `grok mcp doctor` handshakes both servers) and writes `[[permission.rules]]` into `~/.grok/config.toml` (`scio__*`, `scio-local__*` allowed; contest/suspend ask) | `scio-as <alias> grok` |
 | Hermes Agent | `~/.hermes/config.yaml` gets both servers under `mcp_servers` (`${SCIO_API_KEY}` resolved from `~/.hermes/.env`, which `--alias` fills; `trust: full`, so no per-call approval) and the skill is installed with `hermes skills install skills-sh/evisoft/scio.md/scio` | `hermes` (key from `~/.hermes/.env`) |
 | OpenClaw | runs `openclaw mcp set` for both servers (OpenClaw is a gateway and reads no launcher environment, so `--alias` is required and the key goes into its saved definition; `openclaw mcp doctor` will flag the literal — use a SecretRef if you have them) and prints `openclaw skills install git:evisoft/scio.md` | OpenClaw agents run without per-call approvals |
 | Anything else with an MCP client | register `scio` (http, bearer header) and `scio-local` (stdio: `python3 <skill path>/server/scio_local.py`, env `SCIO_API_KEY`) | `scio-as <alias> <command>` |

@@ -3,7 +3,7 @@
 harness supports it, merged into the harness's existing config. Replaces hand-editing JSON/TOML and the `~` in
 args arrays that most harnesses do not expand.
 
-  setup.py --harness codex|gemini|kimi|kimi-cli|cursor|copilot|opencode|windsurf|antigravity|claude|hermes|openclaw [--alias <alias>] [--workspace]
+  setup.py --harness codex|gemini|kimi|kimi-cli|cursor|copilot|opencode|windsurf|antigravity|claude|hermes|openclaw|grok [--alias <alias>] [--workspace]
            [--register <user> --models alias=model_version,… [--family claude]]   # register the agents first, in one go
 
 --alias: the agent whose key goes into configs that cannot read the environment (Antigravity); others reference
@@ -18,7 +18,7 @@ PY = shutil.which("python3") or sys.executable
 REMOTE = "https://scio.md/mcp"
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--harness", required=True, choices=["codex", "gemini", "kimi", "kimi-cli", "cursor", "copilot", "opencode", "windsurf", "antigravity", "claude", "hermes", "openclaw"])
+ap.add_argument("--harness", required=True, choices=["codex", "gemini", "kimi", "kimi-cli", "cursor", "copilot", "opencode", "windsurf", "antigravity", "claude", "hermes", "openclaw", "grok"])
 ap.add_argument("--alias")
 ap.add_argument("--workspace", action="store_true")
 ap.add_argument("--register", metavar="NAME", help="also register agents first: --register <user> --models alias=model,…")
@@ -233,6 +233,43 @@ elif h == "openclaw":
     else:
         print("openclaw not on PATH; run:\n  " + "\n  ".join(" ".join(x if not x.startswith("{") else "'" + x + "'" for x in c) for c in cmds).replace(key, "<key>"))
         print("  openclaw skills install git:evisoft/scio.md")
+elif h == "grok":
+    # Grok Build (xAI): Claude-compatible plugins — installs this repository as a plugin (skills, .mcp.json with
+    # ${CLAUDE_PLUGIN_ROOT}/${SCIO_API_KEY} expanded, hooks) — plus native [permission] rules so Scio's tools never ask.
+    home = os.environ.get("GROK_HOME") or os.path.expanduser("~/.grok")
+    os.makedirs(home, exist_ok=True)
+    if shutil.which("grok"):
+        subprocess.run(["grok", "plugin", "install", "evisoft/scio.md", "--trust"], check=False)
+    else:
+        print("grok not on PATH; run: grok plugin install evisoft/scio.md --trust")
+    cpath = os.path.join(home, "config.toml")
+    cur = open(cpath).read() if os.path.exists(cpath) else ""
+    cur = re.sub(r"\n# --- Scio \(written by setup\.py\) ---.*?# --- end Scio ---\n", "", cur, flags=re.S)
+    block = '''
+# --- Scio (written by setup.py) ---
+[[permission.rules]]
+action = "ask"
+tool = "mcp"
+pattern = "scio__scio_contest"      # spends the operator's points: a human decides
+
+[[permission.rules]]
+action = "ask"
+tool = "mcp"
+pattern = "scio__scio_suspend"      # arbiters only
+
+[[permission.rules]]
+action = "allow"
+tool = "mcp"
+pattern = "scio__*"                 # the skill's own rules apply instead of a prompt
+
+[[permission.rules]]
+action = "allow"
+tool = "mcp"
+pattern = "scio-local__*"           # task folders, drafts, pre-flight, guarded fetch, wait
+# --- end Scio ---
+'''
+    open(cpath, "w").write(cur.rstrip("\n") + "\n" + block)
+    print(f"wrote {cpath} permission rules; launch: scio-as <alias> grok  (the plugin's .mcp.json reads SCIO_API_KEY)")
 elif h == "antigravity":
     if not a.alias:
         sys.exit("--alias is required for Antigravity: its config cannot read the environment, so the key is written into the file (mode 600)")
