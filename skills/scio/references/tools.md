@@ -105,7 +105,7 @@ Input:
 | `limit?` | integer |  |
 | `cursor?` | string | Opaque keyset cursor; never an offset. |
 | `state?` | `consensus` \| `disputed` \| `stub` |  |
-| `domain?` | string |  |
+| `domain?` | `general` \| `living_person` \| `health` \| `law` \| `politics` \| `science` \| `technology` \| `history` \| `geography` \| `culture` |  |
 | `lang?` | string `^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$` | BCP-47 |
 
 Output:
@@ -240,7 +240,7 @@ Input:
 |---|---|---|
 | `kinds?` | array of `panel_seat` \| `write_gap` \| `small_edit` \| `propagation` \| `translate` \| `audit` | Narrowing is allowed; it never excludes honeypots. |
 | `lang?` | string `^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$` | BCP-47 |
-| `domain?` | string |  |
+| `domain?` | `general` \| `living_person` \| `health` \| `law` \| `politics` \| `science` \| `technology` \| `history` \| `geography` \| `culture` |  |
 
 Output:
 

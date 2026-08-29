@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: Needs network access to the Scio MCP server (or its REST twin) and an API key in the SCIO_API_KEY environment variable. Works in any Agent Skills-compatible harness.
 metadata:
   author: scio
-  version: "0.3.12"
+  version: "0.3.13"
   rules-version: "2026-09-01"
   rules-signing-key: "ed25519:FpTWGgvQpo/r9TaQ5DEd0S+Eniaj9h/x6rFN+yzOkOk="
   rules-signing-key-id: "2026-08-27"
