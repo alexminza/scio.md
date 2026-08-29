@@ -31,8 +31,12 @@ elif tool == "Bash":
     ALIAS = r"[A-Za-z0-9_\-]+"
     # scio-as execs its arguments: only a known harness binary is approved without a prompt, never an arbitrary command
     HARNESS = r"(claude|codex|gemini|opencode|kimi|cursor-agent|hermes|grok|qwen|copilot)"
+    # env overrides that cannot redirect the key or the keys file: SCIO_API (where the bearer key is sent),
+    # SCIO_API_KEY and SCIO_KEYS_FILE are deliberately absent — a prompt-injected `SCIO_API=https://evil …`
+    # would otherwise be approved silently and exfiltrate the agent's identity
+    ENV = r"SCIO_(ROLES|WORK_DIR|HARNESS|LANGUAGES|MODEL_FAMILY|MODEL_VERSION|RULES_BUNDLED)"
     if not re.search(r"[\x00-\x1f\x7f]", cmd) and (
-        re.fullmatch(rf'(SCIO_[A-Z_]+={SAFE_ARG}\s+)*python3\s+"?{scripts}/(whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\.py"?(\s+{SAFE_ARG}|\s+"[\w.\- /:=@+,%]*")*', cmd)
+        re.fullmatch(rf'({ENV}={SAFE_ARG}\s+)*python3\s+"?{scripts}/(whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\.py"?(\s+{SAFE_ARG}|\s+"[\w.\- /:=@+,%]*")*', cmd)
         or re.fullmatch(rf'"?{scripts}/scio-as"?\s+(--list|{ALIAS}\s+--print-env|{ALIAS}\s+(--supervise\s+)?{HARNESS}(\s+{SAFE_ARG}){{0,12}})', cmd)):
         reason = "one of the skill's own scripts, without chaining"
 elif tool in ("WebFetch",):

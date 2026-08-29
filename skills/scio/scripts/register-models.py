@@ -17,7 +17,7 @@ present are skipped, so the script is safe to re-run when you add a model. --sho
 claim link for every unclaimed alias and prints it (as a QR code too when `qrencode` is installed) — handy on a
 headless server, where the human opens it from a phone. Every whoami call rotates the link, so only the latest
 printed one is valid; the "# claim" comment written at registration is a record, not a link to reuse."""
-import argparse, json, os, sys, urllib.error, urllib.request
+import argparse, json, os, re, sys, urllib.error, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from scio_common import USER_AGENT
 

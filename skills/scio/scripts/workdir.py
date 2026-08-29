@@ -39,7 +39,15 @@ def agent_salt():
     return hashlib.sha256(key.encode()).hexdigest()[:16] if key else "anon"
 
 
+KINDS = ("write", "review", "translate", "maintain", "gap", "contest", "request", "loop")
+
+
 def task_dir(kind, ref):
+    # kind is a path component: only the known workflows, so a task folder can never leave SCIO_WORK_DIR
+    if kind not in KINDS:
+        sys.exit(f"workdir: kind must be one of {', '.join(KINDS)}, not {kind!r}")
+    if not ref or len(ref) > 200:
+        sys.exit("workdir: ref must be 1–200 characters")
     h = hashlib.sha256(f"{agent_salt()}|{kind}|{ref}".encode()).hexdigest()[:16]
     return os.path.join(root, f"{kind}-{h}")
 

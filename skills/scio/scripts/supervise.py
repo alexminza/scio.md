@@ -6,7 +6,7 @@
 When the *harness* stops the agent — "usage limit reached, resets at 15:00", "rate limit … try again in 20 minutes",
 a 429 from the model provider — no tool inside the session can wait, because the session is over. This runs the
 command, watches its output, and when it exits: (1) if the output names a reset time or delay, sleeps until then;
-(2) otherwise, on a non-zero exit, backs off 1 → 2 → 4 … → 60 minutes; (3) on exit 0 with no limit seen, stops.
+(2) otherwise, on a non-zero exit, backs off 1 → 2 → 4 … → 60 minutes; (3) on exit 0, stops — a limit phrase in ordinary output is not a limit.
 Then it runs the command again, so `/scio:loop` (or `codex exec`, `gemini -p`, `kimi -p`) resumes where the
 server's state left it — the loop's state lives on scio.md, not in the session. Used through:
   scio-as <alias> --supervise claude -p "/scio:loop"
@@ -14,8 +14,10 @@ server's state left it — the loop's state lives on scio.md, not in the session
 import datetime as dt, os, re, subprocess, sys, time
 
 LIMIT_AT = re.compile(r"reset(?:s)?\s+(?:at|@)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?", re.I)
-LIMIT_IN = re.compile(r"(?:reset(?:s)?|try again|retry|available)\s+in\s+(?:about\s+)?(\d+)\s*(second|sec|minute|min|hour|hr|h|m|s)s?", re.I)
-LIMIT_WORDS = re.compile(r"usage limit|rate limit|too many requests|429|quota (?:exceeded|reached)|capacity", re.I)
+# "available in 2 minutes" alone is ordinary prose (an archive, a train); it counts only next to a limit word
+LIMIT_IN = re.compile(r"(?:limit|429|too many requests|quota|overloaded)[^\n]{0,80}?(?:reset(?:s)?|try again|retry|available)\s+in\s+(?:about\s+)?(\d+)\s*(second|sec|minute|min|hour|hr|h|m|s)s?\b"
+                      r"|(?:reset(?:s)?|try again|retry)\s+in\s+(?:about\s+)?(\d+)\s*(second|sec|minute|min|hour|hr|h|m|s)s?\b[^\n]{0,80}?(?:limit|429|too many requests|quota)", re.I)
+LIMIT_WORDS = re.compile(r"usage limit|rate limit(?:ed)?|too many requests|(?:error|status|http)\W{0,3}429\b|\b429\W{0,3}too many|quota (?:exceeded|reached)|(?:at|over|out of) capacity|capacity (?:limit|exceeded|reached)", re.I)
 BACKOFF = [60, 120, 240, 480, 960, 1920, 3600]
 
 
@@ -23,7 +25,7 @@ def parse_wait(text):
     """Seconds to wait, from what the harness printed; None when nothing looks like a limit."""
     m = LIMIT_IN.search(text)
     if m:
-        n, unit = int(m.group(1)), m.group(2).lower()
+        n, unit = int(m.group(1) or m.group(3)), (m.group(2) or m.group(4)).lower()
         return n * (3600 if unit.startswith("h") else 60 if unit.startswith("m") else 1) + 30
     m = LIMIT_AT.search(text)
     if m:
@@ -62,9 +64,11 @@ def main():
                 tail.pop(0)
         code = p.wait()
         text = "".join(tail)
-        wait = parse_wait(text)
-        if wait is None and code == 0:
-            print("supervise: command finished without a limit; done"); return
+        # a limit message only matters when the harness actually stopped on it: exit 0 is the loop finishing normally,
+        # whatever an article about batteries or archives happened to say
+        wait = parse_wait(text) if code != 0 else None
+        if code == 0:
+            print("supervise: command finished; done"); return
         if wait is None:
             wait = BACKOFF[min(fails, len(BACKOFF) - 1)]; fails += 1
             why = f"exit {code}, backoff"

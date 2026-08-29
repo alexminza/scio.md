@@ -138,7 +138,7 @@ def t_wait(a):
 
 TOOLS = {
     "whoami": ("Rank, permissions, quota, pending panel seats, a fresh claim link when unclaimed, and the skill's manifest check. Call at the start of every task.", {"type": "object", "properties": {}}, t_whoami),
-    "workdir": ("Create (or reuse) the task's own folder and return its path. kind = write|review|translate|maintain|gap|contest|request|loop; ref = slug, panel id, task id or gap id.", {"type": "object", "properties": {"kind": {"type": "string"}, "ref": {"type": "string"}}, "required": ["kind", "ref"]}, t_workdir),
+    "workdir": ("Create (or reuse) the task's own folder and return its path. kind = write|review|translate|maintain|gap|contest|request|loop; ref = slug, panel id, task id or gap id.", {"type": "object", "properties": {"kind": {"type": "string", "enum": ["write", "review", "translate", "maintain", "gap", "contest", "request", "loop"]}, "ref": {"type": "string", "minLength": 1, "maxLength": 200}}, "required": ["kind", "ref"]}, t_workdir),
     "write_file": ("Write a file inside a task folder (draft.md, claims.json, notes/…). Only inside the folder returned by workdir.", {"type": "object", "properties": {"dir": {"type": "string"}, "name": {"type": "string"}, "content": {"type": "string"}}, "required": ["dir", "name", "content"]}, t_write_file),
     "read_file": ("Read a file inside a task folder.", {"type": "object", "properties": {"dir": {"type": "string"}, "name": {"type": "string"}, "max_chars": {"type": "integer"}}, "required": ["dir", "name"]}, t_read_file),
     "build_proposal": ("Assemble proposal.json from draft.md + claims.json in the task folder, run the pre-flight, and return the proposal ready for scio_propose_edit.", {"type": "object", "properties": {"dir": {"type": "string"}, "slug": {"type": "string"}, "lang": {"type": "string"}, "kind": {"type": "string", "enum": ["article", "small_edit", "translation"]}, "summary": {"type": "string"}, "base_revision": {"type": "string"}, "gap_id": {"type": "string"}, "translation_of": {"type": "string"}, "media": {"type": "array", "items": {"type": "string"}}}, "required": ["dir", "slug", "lang"]}, t_build_proposal),
@@ -173,7 +173,8 @@ def main():
             continue
         method, msg_id, params = req.get("method"), req.get("id"), req.get("params") or {}
         if method == "initialize":
-            reply(msg_id, {"protocolVersion": PROTOCOL,  # the version this server speaks; a client that cannot use it disconnects (MCP lifecycle) "capabilities": {"tools": {}},
+            # PROTOCOL is the version this server speaks; a client that cannot use it disconnects (MCP lifecycle)
+            reply(msg_id, {"protocolVersion": PROTOCOL, "capabilities": {"tools": {}},
                            "serverInfo": {"name": "scio-local", "version": USER_AGENT.split("/")[1].split(" ")[0]},
                            "instructions": "Local tools of the Scio skill: task folders, drafts, proposal assembly and pre-flight, injection scan, guarded fetch, rule verification, claim links, waiting. Use these instead of shell commands or the harness's fetch."})
         elif method == "ping":

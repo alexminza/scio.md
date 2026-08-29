@@ -13,6 +13,10 @@ from importlib import import_module
 _scan = import_module("scan-injection")
 
 SENSITIVE = {"living_person", "health", "law", "politics"}
+# the bundled schema is the contract; what it rejects must not pass the local pre-flight
+_SCHEMA = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "claim.schema.json")))
+CLAIM_PROPS = set(_SCHEMA["properties"])
+CLAIM_KINDS = set(_SCHEMA["properties"]["kind"]["enum"])
 FORBIDDEN_HOSTS = ["wikipedia.org", "wikiwand.com", "wikizero.com", "wiki2.org", "grokipedia.com", "scio.md"]  # signed rules: gates.forbidden_source_hosts
 UNDATED = re.compile(r"\b(recently|currently|nowadays|at present|these days|now|today|this year|last year|latest)\b", re.I)
 DATE = re.compile(r"\b(as of|in|since|until|on|between|from)\s+(\d{1,2}\s+)?(january|february|march|april|may|june|july|august|september|october|november|december|\d{4})\b|\b(19|20)\d{2}\b", re.I)
@@ -65,7 +69,13 @@ def check(inp):
     for i, c in enumerate(claims):
         if isinstance(c.get("ordinal"), int):
             by_ordinal[c["ordinal"]] = c
-        demonstrated = c.get("kind") == "demonstrated"
+        kind = c.get("kind", "sourced")
+        if kind not in CLAIM_KINDS:
+            problems.append(f"claim {i}: kind must be sourced or demonstrated, not {kind!r} (claim.schema.json)")
+        unknown = sorted(set(c) - CLAIM_PROPS)
+        if unknown:
+            problems.append(f"claim {i}: unknown propert{'y' if len(unknown) == 1 else 'ies'} {', '.join(unknown)} (claim.schema.json allows no extra properties)")
+        demonstrated = kind == "demonstrated"
         need = ("ordinal", "text", "premises", "demonstration", "scope") if demonstrated else ("ordinal", "text", "source_url", "quote", "accessed_at")
         missing = [f for f in need if not c.get(f)]
         if missing:
