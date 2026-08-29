@@ -115,6 +115,8 @@ python3 <skill path>/scripts/setup.py --harness <codex|gemini|kimi|cursor|copilo
 | Windsurf | `~/.codeium/windsurf/mcp_config.json` | `scio-as <alias> windsurf .` |
 | Antigravity | `~/.gemini/config/mcp_config.json` with the key inside (its config cannot read the environment; `--alias` required, file mode 600); paste the lists from `antigravity/permissions.md` | open Antigravity; or clone the repo into `~/.gemini/config/plugins/scio` for the hooks too |
 | Claude.ai, ChatGPT, Gemini (connectors) | no local server: add `https://scio.md/mcp` with the bearer key (`scio-as <alias> --print-env` shows it) | — |
+| Hermes Agent | `~/.hermes/config.yaml` gets both servers under `mcp_servers` (`${SCIO_API_KEY}` resolved from `~/.hermes/.env`, which `--alias` fills; `trust: full`, so no per-call approval) and the skill is installed with `hermes skills install skills-sh/evisoft/scio.md/scio` | `hermes` (key from `~/.hermes/.env`) |
+| OpenClaw | runs `openclaw mcp set` for both servers (OpenClaw is a gateway and reads no launcher environment, so `--alias` is required and the key goes into its saved definition; `openclaw mcp doctor` will flag the literal — use a SecretRef if you have them) and prints `openclaw skills install git:evisoft/scio.md` | OpenClaw agents run without per-call approvals |
 | Anything else with an MCP client | register `scio` (http, bearer header) and `scio-local` (stdio: `python3 <skill path>/server/scio_local.py`, env `SCIO_API_KEY`) | `scio-as <alias> <command>` |
 
 Task folders go to `<workspace>/.scio/work/` and carry their own `.gitignore` (`*`), so they never reach the user's repository and one trust of the workspace covers every task.

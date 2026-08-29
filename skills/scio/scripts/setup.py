@@ -3,7 +3,7 @@
 harness supports it, merged into the harness's existing config. Replaces hand-editing JSON/TOML and the `~` in
 args arrays that most harnesses do not expand.
 
-  setup.py --harness codex|gemini|kimi|cursor|copilot|opencode|windsurf|antigravity|claude [--alias <alias>] [--workspace]
+  setup.py --harness codex|gemini|kimi|kimi-cli|cursor|copilot|opencode|windsurf|antigravity|claude|hermes|openclaw [--alias <alias>] [--workspace]
            [--register <user> --models alias=model_version,… [--family claude]]   # register the agents first, in one go
 
 --alias: the agent whose key goes into configs that cannot read the environment (Antigravity); others reference
@@ -18,7 +18,7 @@ PY = shutil.which("python3") or sys.executable
 REMOTE = "https://scio.md/mcp"
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--harness", required=True, choices=["codex", "gemini", "kimi", "kimi-cli", "cursor", "copilot", "opencode", "windsurf", "antigravity", "claude"])
+ap.add_argument("--harness", required=True, choices=["codex", "gemini", "kimi", "kimi-cli", "cursor", "copilot", "opencode", "windsurf", "antigravity", "claude", "hermes", "openclaw"])
 ap.add_argument("--alias")
 ap.add_argument("--workspace", action="store_true")
 ap.add_argument("--register", metavar="NAME", help="also register agents first: --register <user> --models alias=model,…")
@@ -179,6 +179,60 @@ elif h == "opencode":
             p.update({"scio_*": "allow", "scio-local_*": "allow", "scio_scio_contest": "ask", "scio_scio_suspend": "ask"})
     merge_json(path, m, 0o644)
     print("launch: scio-as <alias> opencode")
+elif h == "hermes":
+    # Hermes Agent: ~/.hermes/config.yaml → mcp_servers; ${VAR} resolves from ~/.hermes/.env or the process env;
+    # trust defaults to `full` (no per-call approval). Skills live in ~/.hermes/skills — install ours from skills.sh.
+    home = os.path.expanduser("~/.hermes")
+    os.makedirs(home, exist_ok=True)
+    cpath = os.path.join(home, "config.yaml")
+    servers = {
+        "scio": {"url": REMOTE, "headers": {"Authorization": "Bearer ${SCIO_API_KEY}", "X-Scio-Harness": "hermes"}, "timeout": 120, "trust": "full"},
+        "scio-local": {"command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": "${SCIO_API_KEY}"}, "timeout": 120, "trust": "full"},
+    }
+    try:
+        import yaml
+        cfg = yaml.safe_load(open(cpath)) if os.path.exists(cpath) else {}
+        cfg = cfg or {}
+        cfg.setdefault("mcp_servers", {}).update(servers)
+        open(cpath, "w").write(yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True))
+    except ImportError:
+        block = "\nmcp_servers:\n" + "".join(
+            f"  {n}:\n" + "".join(f"    {k}: {json.dumps(v)}\n" for k, v in s.items()) for n, s in servers.items())
+        open(cpath, "a").write(block)
+        print("pyyaml not installed: appended a mcp_servers block — merge by hand if the file already had one")
+    print(f"wrote {cpath}")
+    if a.alias:  # Hermes usually runs as a service: put the key where its ${SCIO_API_KEY} resolves
+        envp = os.path.join(home, ".env")
+        lines = [l for l in (open(envp).read().splitlines() if os.path.exists(envp) else []) if not l.startswith("SCIO_API_KEY=")]
+        fd = os.open(envp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write("\n".join(lines + [f"SCIO_API_KEY={key_for(a.alias)}"]) + "\n")
+        print(f"wrote SCIO_API_KEY to {envp} (mode 600)")
+    cmd = ["hermes", "skills", "install", "skills-sh/evisoft/scio.md/scio"]
+    if shutil.which("hermes"):
+        subprocess.run(cmd, check=False)
+    else:
+        print("install the skill: " + " ".join(cmd))
+    print("launch: hermes (the key comes from ~/.hermes/.env) or scio-as <alias> hermes")
+elif h == "openclaw":
+    # OpenClaw: saved MCP definitions via `openclaw mcp set <name> <json>`; it runs as a gateway, so the key is written
+    # into the definition (pass --alias) — `openclaw mcp doctor` will flag the literal; prefer a SecretRef if you use them.
+    key = os.environ.get("SCIO_API_KEY") or (key_for(a.alias) if a.alias else None)
+    if not key:
+        sys.exit("OpenClaw runs as a service and reads no launcher environment: pass --alias so the key is written into its saved definition")
+    defs = {
+        "scio": {"url": REMOTE, "transport": "streamable-http", "headers": {"Authorization": f"Bearer {key}", "X-Scio-Harness": "openclaw"}},
+        "scio-local": {"command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": key}},
+    }
+    cmds = [["openclaw", "mcp", "set", n, json.dumps(d)] for n, d in defs.items()]
+    if shutil.which("openclaw"):
+        for c in cmds:
+            subprocess.run(c, check=False)
+        subprocess.run(["openclaw", "mcp", "doctor"], check=False)
+        print("skill: openclaw skills install git:evisoft/scio.md  (if not yet installed)")
+    else:
+        print("openclaw not on PATH; run:\n  " + "\n  ".join(" ".join(x if not x.startswith("{") else "'" + x + "'" for x in c) for c in cmds).replace(key, "<key>"))
+        print("  openclaw skills install git:evisoft/scio.md")
 elif h == "antigravity":
     if not a.alias:
         sys.exit("--alias is required for Antigravity: its config cannot read the environment, so the key is written into the file (mode 600)")
