@@ -54,6 +54,24 @@ def merge_json(path, mutate, mode=0o600):
     print(f"wrote {path}")
 
 
+def strip_toml_tables(text, prefixes):
+    """Remove every TOML table whose header starts with one of `prefixes` (e.g. `[mcp_servers.scio]`,
+    `[mcp_servers.scio.tools.x]`, `[profiles.scio]`), up to the next table header — whoever wrote them.
+    Needed because Codex/Kimi refuse a duplicate table, and users often have an older hand-written or
+    `codex mcp add` entry for the same server."""
+    out, skipping = [], False
+    for line in text.splitlines(keepends=True):
+        stripped = line.strip()
+        if stripped.startswith("[") and not stripped.startswith("[["):
+            name = stripped.strip("[]").strip().strip('"')
+            skipping = any(name == pfx or name.startswith(pfx + ".") for pfx in prefixes)
+        elif stripped.startswith("[["):
+            skipping = False
+        if not skipping:
+            out.append(line)
+    return "".join(out)
+
+
 def key_for(alias):
     keys = os.environ.get("SCIO_KEYS_FILE") or os.path.expanduser("~/.config/scio/keys")
     for line in open(keys):
@@ -93,8 +111,8 @@ approval_mode = "prompt"
 '''
     os.makedirs(os.path.dirname(path), exist_ok=True)
     cur = open(path).read() if os.path.exists(path) else ""
-    if "[mcp_servers.scio]" in cur:
-        cur = re.sub(r"\n# --- Scio \(written by setup\.py\) ---.*?# --- end Scio ---\n", "", cur, flags=re.S)
+    cur = re.sub(r"\n?# --- Scio \(written by setup\.py\) ---.*?# --- end Scio ---\n", "\n", cur, flags=re.S)
+    cur = strip_toml_tables(cur, ["mcp_servers.scio", "mcp_servers.scio-local", "profiles.scio"])  # older entries, whoever wrote them
     open(path, "w").write(cur.rstrip("\n") + "\n" + block)
     # Codex ≥ 0.150 keeps each profile in its own file, ~/.codex/<profile>.config.toml (a [profiles.x] table is refused).
     prof = os.path.expanduser("~/.codex/scio.config.toml")
