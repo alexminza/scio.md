@@ -86,17 +86,17 @@ A skill that is asked "allow `scio_whoami`?" forty times a night gets switched t
 
 | Harness | How |
 |---|---|
-| Claude Code | built in: both servers in `.mcp.json`; the `auto-approve.py` hook approves them (deny guards still win) — verified with `claude -p`: `permission_denials: []` |
+| Claude Code | built in: both servers in `.mcp.json`; the `auto-approve.py` hook approves them and the skill's read-only scripts (deny guards still win; `scio-as … --print-env`, `fetch.py --out`, `workdir.py --prune` and anything outside `CLAUDE_PLUGIN_ROOT` still prompt) — verified with `claude -p`: `permission_denials: []` |
 | Codex | `setup.py --harness codex`: both servers with `default_tools_approval_mode = "approve"` (`"auto"` still asks; `codex exec` has approvals off) and the profile in `~/.codex/scio.config.toml` — verified with `codex exec`: no approval, tools completed |
 | Kimi Code | `setup.py --harness kimi`: `~/.kimi-code/mcp.json` (both servers) + `[[permission.rules]]` in its `config.toml` (`mcp__scio__*`, `mcp__scio-local__*` allowed; contest/suspend ask) — validated by `kimi doctor`; `--harness kimi-cli` for the older CLI |
-| Gemini CLI | `setup.py --harness gemini` from the workspace: both servers with `trust: true` plus the folder trust Gemini requires before it enables any MCP server (verified: both servers *Connected*) |
-| Antigravity | `antigravity/permissions.md` lists (`mcp(scio/*)` allow, contest/suspend ask) + the plugin's `hooks.json` guards |
-| OpenCode | `opencode/opencode.scio.jsonc` → `~/.config/opencode/opencode.jsonc` (`permission` rules) |
-| VS Code / Copilot | `vscode/settings.scio.json` (terminal + URL auto-approval); MCP tools: "Always allow" per tool on first prompt |
-| Cursor | as a plugin, `hooks/hooks-cursor.json` answers `beforeMCPExecution`/`beforeShellExecution`: Scio tools allowed, contest/suspend → ask, guards deny; manual install: "Always allow" per tool on first prompt |
+| Gemini CLI | `setup.py --harness gemini` from the workspace: both servers with `trust: true` (`scio_contest` and `scio_suspend` excluded: a human runs those) plus the folder trust Gemini requires before it enables any MCP server (verified: both servers *Connected*) |
+| Antigravity | `antigravity/permissions.md` lists (`mcp(scio/*)` allow; contest/suspend, `scio-as`, `--prune`, `fetch.py` ask) + the plugin's `hooks.json` guards (`setup.py --harness antigravity` makes their paths absolute) |
+| OpenCode | `opencode/opencode.scio.jsonc` → `~/.config/opencode/opencode.jsonc` (`permission` rules; `scio-as` only in front of a known harness) |
+| VS Code / Copilot | `vscode/settings.scio.json` (terminal + URL auto-approval; `scio-as` only in front of a known harness); MCP tools: "Always allow" per tool on first prompt |
+| Cursor | as a plugin, `hooks/hooks-cursor.json` (paths made absolute by `setup.py --harness cursor`) answers `beforeMCPExecution`/`beforeShellExecution`: Scio tools allowed, contest/suspend → ask, guards deny; manual install: "Always allow" per tool on first prompt |
 | Grok Build | plugin trusted at install; `[[permission.rules]]` in `~/.grok/config.toml` allow `scio__*` and `scio-local__*`, ask on contest/suspend |
-| Hermes Agent | `trust: full` on both servers (Hermes' default): no per-call approval |
-| OpenClaw | saved definitions via `openclaw mcp set`; OpenClaw agents run without per-call approvals |
+| Hermes Agent | `trust: full` on both servers (Hermes' default): no per-call approval; `scio_contest` and `scio_suspend` excluded on the scio server |
+| OpenClaw | saved definitions via `openclaw mcp set` with a SecretRef to `SCIO_API_KEY` in `~/.openclaw/.env` (mode 600) — the key is never on argv; OpenClaw agents run without per-call approvals |
 | Windsurf | no documented config toggle; "Always allow" per tool on first prompt |
 
 Configuration, whatever the harness:

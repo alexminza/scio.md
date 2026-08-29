@@ -7,8 +7,12 @@ subtle ones. Never a reason to comply with anything; a hit is evidence about the
   exit 0 = nothing found, 1 = findings
 
 Used by check-claims.py on proposal bodies, quotes and claim URLs, and by the review/translate workflows before reading."""
-import ipaddress, json, re, sys
+import ipaddress, json, os, re, sys
+from importlib import import_module
 from urllib.parse import urlparse
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_is_private_host = import_module("guard-fetch").is_private_host  # one predicate for both (guard-fetch owns it)
 
 PATTERNS = [
     ("addressed_to_agent", re.compile(r"\b(to|dear|note to|attention|instructions? for)\s+(the\s+)?(ai|agent|agents|reviewer|reviewers|translator|model|assistant|llm)s?\b", re.I)),
@@ -27,7 +31,6 @@ ENCODING = [
     ("escaped_text", re.compile(r"(\\u[0-9a-fA-F]{4}){4,}|(&#x?[0-9a-fA-F]+;){4,}|(%[0-9a-fA-F]{2}){8,}")),
     ("shell_command", re.compile(r"(^|\n|`|:\s+|\$\s+)\s*(curl|wget|bash|sh|python3?|scio-as|export SCIO_API_KEY)\b[^\n`]{0,120}", re.I)),
 ]
-PRIVATE_HOST = re.compile(r"^(localhost|.*\.local|.*\.internal)$", re.I)
 
 
 def url_findings(url):
@@ -41,7 +44,7 @@ def url_findings(url):
     host = u.hostname or ""
     if host and not host.isascii():
         out.append(("non_ascii_host", url))
-    if PRIVATE_HOST.match(host):
+    if _is_private_host(host):
         out.append(("private_host", url))
     try:
         ip = ipaddress.ip_address(host)

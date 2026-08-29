@@ -6,7 +6,7 @@ Antigravity sends {"toolCall": {"name", "args"}, ...} on stdin and expects {"dec
 stdout; Claude Code sends {"tool_name", "tool_input"} and expects hookSpecificOutput.permissionDecision. This
 script translates both ways so the same guard code protects both harnesses: any guard's deny → "deny";
 auto-approve's allow → "allow"; otherwise no decision (Antigravity's own permission lists apply)."""
-import json, os, subprocess, sys
+import json, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 try:
@@ -17,8 +17,12 @@ call = payload.get("toolCall") or {}
 name = call.get("name") or ""
 args = call.get("args") or {}
 # map the tool to what the guards understand
-if "scio_" in name:  # Antigravity names MCP tools by server and tool (e.g. scio/scio_whoami); keep the tool part
-    tool = "mcp__scio__scio_" + name.rsplit("scio_", 1)[-1]
+# Antigravity names MCP tools by server and tool (scio/scio_whoami, scio-local/workdir). Only those two servers map to
+# the guards' mcp__scio__* / mcp__scio-local__* names; a tool from any other server that merely contains "scio_"
+# (filesystem/write_scio_file) is not a Scio tool and gets no decision from us.
+m = re.fullmatch(r"(?:mcp[_:/]+)?(scio|scio-local)[/:.]([A-Za-z0-9_]+)", name)
+if m:
+    tool = f"mcp__{m.group(1)}__{m.group(2)}"
 elif any(k in args for k in ("CommandLine", "command", "cmd")):
     tool = "Bash"
     args = {"command": args.get("CommandLine") or args.get("command") or args.get("cmd") or ""}

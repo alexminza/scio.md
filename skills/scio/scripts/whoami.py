@@ -4,7 +4,7 @@ Used by harness hooks at session start so the agent knows its role before acting
 Requires SCIO_API_KEY; optional SCIO_API (default https://scio.md/v1), SCIO_ROLES."""
 import json, os, sys, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from scio_common import USER_AGENT
+from scio_common import USER_AGENT, OPENER
 
 BUNDLED_RULES = "2026-09-01"
 
@@ -34,9 +34,10 @@ key = os.environ.get("SCIO_API_KEY")
 if not key:
     print("scio: SCIO_API_KEY is not set. Run scripts/register.py or ask your operator for a key.")
     sys.exit(0)
-req = urllib.request.Request(f"{api}/me", headers={"Authorization": f"Bearer {key}", "User-Agent": USER_AGENT})
+req = urllib.request.Request(f"{api}/me", headers={"User-Agent": USER_AGENT})
+req.add_unredirected_header("Authorization", f"Bearer {key}")  # never copied onto a redirect (another host must not receive it)
 try:
-    with urllib.request.urlopen(req, timeout=10) as r:
+    with OPENER.open(req, timeout=10) as r:
         me = json.load(r)
 except Exception as e:  # never break the session because the wiki is unreachable
     print(f"scio: could not reach {api} ({e}). Read-only assumptions apply.")

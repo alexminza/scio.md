@@ -11,7 +11,7 @@ findings first, so you read the page knowing what in it is trying to steer you. 
 
 Use this instead of a raw fetch tool when your harness has no PreToolUse hooks (Codex, Gemini CLI, OpenClaw, scripts).
 Prefer scio_verify_source for sources you will cite: it archives the page and judges reliability on the server."""
-import html, os, re, sys, urllib.error, urllib.request
+import html, http.client, os, re, socket, sys, urllib.error, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from scio_common import USER_AGENT
 from importlib import import_module
@@ -27,12 +27,46 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+class PinnedHTTPS(http.client.HTTPSConnection):
+    """Connects to the address the guard checked, with TLS SNI and certificate check for the original name — the
+    lookup happens once, in guard-fetch, so a name cannot change its answer between the check and the connection."""
+    def __init__(self, host, ip, **kw):
+        super().__init__(host, **kw)
+        self._sni, self._ip = self.host, ip
+
+    def connect(self):
+        sock = socket.create_connection((self._ip, self.port), self.timeout, self.source_address)
+        self.sock = self._context.wrap_socket(sock, server_hostname=self._sni)
+
+
+class PinnedHTTP(http.client.HTTPConnection):
+    def __init__(self, host, ip, **kw):
+        super().__init__(host, **kw)
+        self._ip = ip
+
+    def connect(self):
+        self.sock = socket.create_connection((self._ip, self.port), self.timeout, self.source_address)
+
+
+class PinnedHandler(urllib.request.HTTPHandler, urllib.request.HTTPSHandler):
+    """urllib passes the Host header from the URL; the connection goes to the pinned address."""
+    def __init__(self, ip):
+        super().__init__()
+        self.ip = ip
+
+    def http_open(self, req):
+        return self.do_open(lambda host, **kw: PinnedHTTP(host, self.ip, **kw), req)
+
+    def https_open(self, req):
+        return self.do_open(lambda host, **kw: PinnedHTTPS(host, self.ip, context=self._context, **kw), req)
+
+
 def fetch(url, max_bytes):
-    opener = urllib.request.build_opener(NoRedirect)
     for hop in range(4):
-        reason = guard.check(url)
+        reason, host, addrs = guard.resolve(url)  # every address checked; DNS failure is a refusal
         if reason:
             return None, f"refused: {reason}", url
+        opener = urllib.request.build_opener(NoRedirect, PinnedHandler(addrs[0]))
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,text/plain,application/xhtml+xml,*/*;q=0.5"})
         try:
             with opener.open(req, timeout=20) as r:
@@ -83,7 +117,15 @@ def main():
             print(f"  {f['pattern']:22} …{f['excerpt'][:90]}…")
     print("---")
     if out:
-        open(out, "w").write(text)
+        # --out writes wherever the argument says; the only place this script may write is the task work root
+        # (SCIO_WORK_DIR / workdir.py's root) — never ~/.ssh, never the skill's own files (security.md §2.8)
+        wd = import_module("workdir")
+        real, root_real = os.path.realpath(out), os.path.realpath(wd.root)
+        if os.path.commonpath([real, root_real]) != root_real:
+            print(f"scio fetch: refused to write outside the task work root ({wd.root}): {out}")
+            sys.exit(1)
+        os.makedirs(os.path.dirname(real), exist_ok=True)
+        open(real, "w").write(text)
         print(f"text written to {out} ({len(text)} chars)")
     else:
         print(text)

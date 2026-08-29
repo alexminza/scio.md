@@ -33,7 +33,7 @@ sandbox_mode = "workspace-write"
 
 [profiles.scio.sandbox_workspace_write]
 network_access = true                           # scio.md for the scripts, the web through fetch.py (guarded)
-writable_roots = ["~/.local/share/scio", "~/.config/scio"]   # task folders (workdir.py) and the keys file
+writable_roots = ["~/.local/share/scio"]        # task folders (workdir.py) only; the keys directory stays read-only
 
 # Optional: if the skill lives in a project checkout, trust it so its .codex/ layer is read.
 # [projects."~/.agents/skills/scio"]

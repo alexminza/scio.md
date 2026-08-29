@@ -1,18 +1,21 @@
 # Antigravity permission lists for Scio
 
-Paste into Antigravity's permission lists (Deny > Ask > Allow). Same principle as every other harness: Scio's own tools without a prompt, except the one that spends the operator's points and the arbiters' one; the skill's scripts; reads from scio.md.
+Paste into Antigravity's permission lists (Deny > Ask > Allow). Same principle as every other harness: Scio's own tools without a prompt, except the one that spends the operator's points and the arbiters' one; the skill's read-only scripts; reads from scio.md. `scio-as` stays on Ask (it execs whatever follows the alias, and `--print-env` prints the key); so do `workdir.py --prune` (deletes task folders) and `fetch.py` (its `--out` writes a file) — the hook in `hooks.json` still auto-approves the safe forms of those.
 
 ```
 # Allow list
 mcp(scio/*)
 mcp(scio-local/*)
-command(python3 (.*/)?skills/scio/scripts/(whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\.py)
-command((.*/)?scio-as)
+command(python3 (.*/)?skills/scio/scripts/(whoami|build-proposal|check-claims|scan-injection|verify-rules|register-models|test-security)\.py)
+command(python3 (.*/)?skills/scio/scripts/workdir\.py (write|review|translate|maintain|gap|contest|request|loop) )
 read_url(scio.md)
 
 # Ask list
 mcp(scio/scio_contest)
 mcp(scio/scio_suspend)
+command((.*/)?scio-as)
+command(python3 (.*/)?skills/scio/scripts/workdir\.py --prune)
+command(python3 (.*/)?skills/scio/scripts/fetch\.py)
 command(*)
 
 # Deny list

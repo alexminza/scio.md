@@ -8,44 +8,64 @@ from urllib.parse import urlparse
 
 
 
+PRIVATE_HOST = re.compile(r"localhost|.*\.(local|internal|localhost|home\.arpa)", re.I)
+# a host that is an address, not a name: decimal/hex/dotted IPv4 forms and anything with a colon (IPv6); a hex word
+# without a colon (https://cafe/) is a name and goes to DNS like any other
+NUMERIC_HOST = re.compile(r"[0-9]+|0x[0-9a-f]+|[0-9]+(\.[0-9]+){1,3}|[0-9a-f.]*:[0-9a-f:.]*|\[.*\]", re.I)
+
+
+def is_private_host(host):
+    return bool(PRIVATE_HOST.fullmatch((host or "").rstrip(".")))
+
+
 def bad_ip(addr):
     ip = ipaddress.ip_address(addr)
     return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast or ip.is_unspecified
 
 
-def check(url):
-    """Why this URL must not be fetched, or None when it is acceptable. Shared by the hook and fetch.py."""
+def resolve(url):
+    """(reason, host, addresses): why this URL must not be fetched (then host/addresses are None), or None with the
+    host and every address it resolves to — all checked, so the caller can connect to one of them instead of
+    resolving again (a second lookup is the DNS-rebinding window). DNS failure is a refusal, not a pass."""
     u = urlparse(url)
     if u.scheme not in ("https", "http"):
-        return f"scheme '{u.scheme}' is not fetched"
+        return f"scheme '{u.scheme}' is not fetched", None, None
     host = (u.hostname or "").rstrip(".").lower()
     if not host:
-        return "URL has no host"
+        return "URL has no host", None, None
     if not host.isascii():
-        return "non-ASCII host (possible homoglyph domain)"
+        return "non-ASCII host (possible homoglyph domain)", None, None
     if any(label.startswith("xn--") for label in host.split(".")):
-        return "punycode host (internationalised domain, possible homoglyph) — use the source's ASCII domain or scio_verify_source"
-    if re.fullmatch(r"localhost|.*\.(local|internal|localhost)", host):
-        return f"private host {host}"
-    if re.fullmatch(r"[0-9]+|0x[0-9a-f]+|[0-9]+(\.[0-9]+){1,3}|\[?[0-9a-f:]+\]?", host):
+        return "punycode host (internationalised domain, possible homoglyph) — use the source's ASCII domain or scio_verify_source", None, None
+    if is_private_host(host):
+        return f"private host {host}", None, None
+    if u.query and re.search(r"(^|&)(key|token|secret|auth|session|api_?key|bearer)=", u.query, re.I):
+        return "identifier in the query string", None, None
+    if NUMERIC_HOST.fullmatch(host):
         try:
             if bad_ip(host.strip("[]")):
-                return f"private address {host}"
+                return f"private address {host}", None, None
         except ValueError:
-            return f"numeric host in a non-canonical form ({host}); write the address plainly or use a name"
+            return f"numeric host in a non-canonical form ({host}); write the address plainly or use a name", None, None
+        return None, host, [host.strip("[]")]
     try:
-        addrs = {ai[4][0] for ai in socket.getaddrinfo(host, None)}
-    except socket.gaierror:
-        addrs = set()
+        addrs = sorted({ai[4][0] for ai in socket.getaddrinfo(host, u.port or (443 if u.scheme == "https" else 80), type=socket.SOCK_STREAM)})
+    except (socket.gaierror, OSError) as e:
+        return f"{host} does not resolve ({e}); an unresolvable name is not fetched", None, None
+    if not addrs:
+        return f"{host} does not resolve", None, None
     for addr in addrs:
         try:
             if bad_ip(addr):
-                return f"{host} resolves to a private address ({addr})"
+                return f"{host} resolves to a private address ({addr})", None, None
         except ValueError:
-            pass
-    if u.query and re.search(r"(^|&)(key|token|secret|auth|session|api_?key|bearer)=", u.query, re.I):
-        return "identifier in the query string"
-    return None
+            return f"{host} resolves to an address that cannot be parsed ({addr})", None, None
+    return None, host, addrs
+
+
+def check(url):
+    """Why this URL must not be fetched, or None when it is acceptable. Shared by the hook and fetch.py."""
+    return resolve(url)[0]
 
 
 def main():

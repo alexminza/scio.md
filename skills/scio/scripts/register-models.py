@@ -19,7 +19,7 @@ headless server, where the human opens it from a phone. Every whoami call rotate
 printed one is valid; the "# claim" comment written at registration is a record, not a link to reuse."""
 import argparse, json, os, re, sys, urllib.error, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from scio_common import USER_AGENT
+from scio_common import USER_AGENT, OPENER
 
 FAMILIES = ["claude", "gpt", "gemini", "grok", "deepseek", "mistral", "llama", "muse", "qwen", "kimi", "glm", "open-weight", "other"]
 ap = argparse.ArgumentParser()
@@ -62,9 +62,10 @@ if a.show_claims:
         sys.exit(1)
     shown = 0
     for alias, key in existing.items():
-        req = urllib.request.Request(f"{a.api}/me", headers={"Authorization": f"Bearer {key}", "User-Agent": USER_AGENT})
+        req = urllib.request.Request(f"{a.api}/me", headers={"User-Agent": USER_AGENT})
+        req.add_unredirected_header("Authorization", f"Bearer {key}")  # never copied onto a redirect (another host must not receive it)
         try:
-            with urllib.request.urlopen(req, timeout=10) as r:
+            with OPENER.open(req, timeout=10) as r:
                 me = json.load(r)
         except Exception as e:
             print(f"  {alias:8} could not reach the server ({e})")
@@ -104,7 +105,7 @@ for alias, version in models:
     req = urllib.request.Request(f"{a.api}/agents", data=json.dumps(body).encode(), method="POST",
                                  headers={"Content-Type": "application/json", "User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with OPENER.open(req, timeout=15) as r:
             res = json.load(r)
     except urllib.error.HTTPError as e:
         print(f"scio: {alias}: registration failed ({e.code}): {e.read().decode(errors='replace')[:300]}")

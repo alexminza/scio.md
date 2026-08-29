@@ -10,6 +10,7 @@ Two ways to run it:
 import json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from importlib import import_module
+from urllib.parse import urlparse
 _scan = import_module("scan-injection")
 
 SENSITIVE = {"living_person", "health", "law", "politics"}
@@ -40,6 +41,15 @@ def load(argv):
     return payload.get("tool_input", {}) or {}, True
 
 
+def source_host(url):
+    """The host a URL really points at — parsed, not split on strings: `https://wikipedia.org#@evil.example/` is
+    wikipedia.org (the fragment hides the @), `https://wikipedia.org./wiki/X` is wikipedia.org (trailing dot)."""
+    try:
+        return (urlparse(url).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return ""
+
+
 def front_matter(text):
     m = re.match(r"\A---\n(.*?)\n---\n", text, flags=re.S)
     fm = {}
@@ -66,7 +76,13 @@ def check(inp):
 
     # --- claims ---------------------------------------------------------------
     by_ordinal = {}
+    if not isinstance(claims, list):
+        problems.append("claims must be a list (claim.schema.json)")
+        claims = []
     for i, c in enumerate(claims):
+        if not isinstance(c, dict):
+            problems.append(f"claim {i}: must be an object, not {type(c).__name__} (claim.schema.json)")
+            continue
         if isinstance(c.get("ordinal"), int):
             by_ordinal[c["ordinal"]] = c
         kind = c.get("kind", "sourced")
@@ -98,8 +114,8 @@ def check(inp):
             if domain in SENSITIVE:
                 warnings.append(f"claim {i}: demonstrated claim in a sensitive domain — observations there are sourced, not derived (C10, Part V)")
             continue
-        url = (c.get("source_url") or "").lower()
-        host = re.sub(r"^https?://", "", url).split("/")[0].split("@")[-1].split(":")[0]
+        url = str(c.get("source_url") or "").lower()
+        host = source_host(url)
         if any(host == f or host.endswith("." + f) for f in FORBIDDEN_HOSTS) or "wikimedia.org/wiki" in url:
             problems.append(f"claim {i}: {host} is a forbidden source host (P7: no Wikipedia, no Grokipedia, no mirrors, no Scio itself)")
         if bool(c.get("second_source_url")) != bool(c.get("second_quote")):
@@ -107,7 +123,7 @@ def check(inp):
         if domain in SENSITIVE and not c.get("second_source_url"):
             problems.append(f"claim {i}: domain '{domain}' needs a second independent source (Part V)")
         if c.get("second_source_url") and c.get("source_url") and \
-           re.sub(r"^https?://(www\.)?", "", c["second_source_url"]).split("/")[0] == re.sub(r"^https?://(www\.)?", "", c["source_url"]).split("/")[0]:
+           re.sub(r"^www\.", "", source_host(str(c["second_source_url"]))) == re.sub(r"^www\.", "", source_host(str(c["source_url"]))):
             warnings.append(f"claim {i}: both sources are on the same host — are they independent (S3)?")
         q, t = (c.get("quote") or ""), (c.get("text") or "")
         if q and t:
@@ -164,7 +180,7 @@ def check(inp):
     # --- platform limits (rules 2026-08-29 `limits`) and hidden text: what gate 0 refuses, caught here first ---
     if len(claims) > 200:
         problems.append(f"{len(claims)} claims; the limit is 200 per proposal — split the article")
-    hosts = {re.sub(r"^https?://(www\.)?", "", (c.get("source_url") or "")).split("/")[0] for c in claims if c.get("source_url")}
+    hosts = {re.sub(r"^www\.", "", source_host(str(c.get("source_url")))) for c in claims if isinstance(c, dict) and c.get("source_url")}
     if len(hosts) > 100:
         problems.append(f"{len(hosts)} distinct source hosts; the limit is 100 per proposal")
     for i, c in enumerate(claims):
@@ -199,8 +215,12 @@ def main():
     inp, hook_mode = load(sys.argv)
     if inp is None:
         sys.exit(0)
-    problems, warnings = check(inp)
     if hook_mode:
+        # the hook must answer: a crash would print nothing, and a silent hook is an allow in some harnesses
+        try:
+            problems, warnings = check(inp)
+        except Exception as e:
+            problems, warnings = [f"pre-flight could not check this proposal ({type(e).__name__}: {e}); fix the proposal shape"], []
         if problems:
             print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
                               "permissionDecisionReason": "scio: fix before proposing — " + "; ".join(problems[:8])}}))
@@ -208,6 +228,7 @@ def main():
             print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow",
                               "additionalContext": "scio pre-flight warnings (not blocking): " + "; ".join(warnings[:6])}}))
         sys.exit(0)
+    problems, warnings = check(inp)
     for p in problems:
         print(f"ERROR   {p}")
     for w in warnings:

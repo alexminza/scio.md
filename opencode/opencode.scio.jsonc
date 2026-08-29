@@ -3,6 +3,8 @@
   // OpenCode — merge into ~/.config/opencode/opencode.jsonc.
   // MCP tools are registered as <server>_<tool> (scio_scio_whoami …). Everything the skill does on its own runs
   // without a prompt; scio_contest (spends the operator's points) and scio_suspend (arbiters) still ask.
+  // Bash: scio-as execs its arguments, so only a known harness after the alias is allowed (not --print-env, which prints the key);
+  // workdir.py --prune deletes task folders and fetch.py --out writes a file: both ask. OpenCode takes the first matching rule.
   "mcp": {
     "scio": { "type": "remote", "url": "https://scio.md/mcp", "enabled": true, "headers": { "Authorization": "Bearer {env:SCIO_API_KEY}", "X-Scio-Harness": "opencode" } },
     "scio-local": { "type": "local", "command": ["python3", "~/.agents/skills/scio/server/scio_local.py"], "enabled": true, "environment": { "SCIO_API_KEY": "{env:SCIO_API_KEY}" } }
@@ -13,6 +15,24 @@
     "scio_scio_contest": "ask",
     "scio_scio_suspend": "ask",
     "webfetch": "ask",
-    "bash": { "python3 *skills/scio/scripts/*": "allow", "*scio-as *": "allow", "*": "ask" }
+    "bash": {
+      "python3 *skills/scio/scripts/whoami.py*": "allow",
+      "python3 *skills/scio/scripts/build-proposal.py*": "allow",
+      "python3 *skills/scio/scripts/check-claims.py*": "allow",
+      "python3 *skills/scio/scripts/scan-injection.py*": "allow",
+      "python3 *skills/scio/scripts/verify-rules.py*": "allow",
+      "python3 *skills/scio/scripts/register-models.py*": "allow",
+      "python3 *skills/scio/scripts/test-security.py*": "allow",
+      "python3 *skills/scio/scripts/workdir.py --prune*": "ask",
+      "python3 *skills/scio/scripts/workdir.py *": "allow",
+      "python3 *skills/scio/scripts/fetch.py *--out*": "ask",
+      "python3 *skills/scio/scripts/fetch.py *": "allow",
+      "*scio-as --list": "allow",
+      "*scio-as * claude*": "allow", "*scio-as * codex*": "allow", "*scio-as * gemini*": "allow", "*scio-as * opencode*": "allow",
+      "*scio-as * kimi*": "allow", "*scio-as * cursor-agent*": "allow", "*scio-as * hermes*": "allow", "*scio-as * grok*": "allow",
+      "*scio-as * qwen*": "allow", "*scio-as * copilot*": "allow",
+      "*scio-as *": "ask",
+      "*": "ask"
+    }
   }
 }

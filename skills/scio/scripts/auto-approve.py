@@ -24,21 +24,36 @@ elif tool.startswith("mcp__scio__"):
 elif tool == "Bash":
     cmd = (inp.get("command") or "").strip()
     root = os.environ.get("CLAUDE_PLUGIN_ROOT", "")
-    scripts = re.escape(os.path.join(root, "skills", "scio", "scripts")) if root else r"/[\w.\-/]*/skills/scio/scripts"
+    # without the plugin root there is nothing to anchor the script path to: a wildcard prefix would approve a planted
+    # /tmp/x/skills/scio/scripts/fetch.py just the same — so no root, no approval (the normal prompt applies)
+    scripts = re.escape(os.path.join(root, "skills", "scio", "scripts")) if root else None
     # exactly one invocation of one of the skill's scripts: no control characters, no chaining, no subshells,
     # no redirection, no backslash escapes, no quotes inside the arguments — anything cleverer gets the normal prompt
     SAFE_ARG = r"[\w.\-/:=@+,%]+"
     ALIAS = r"[A-Za-z0-9_\-]+"
-    # scio-as execs its arguments: only a known harness binary is approved without a prompt, never an arbitrary command
+    # scio-as execs its arguments: only a known harness binary is approved without a prompt, never an arbitrary command.
+    # `scio-as <alias> --print-env` is not approved either: it prints the raw key into the session (it is for the
+    # operator's shell, eval "$(…)"), and guard-secrets sees arguments, not output.
     HARNESS = r"(claude|codex|gemini|opencode|kimi|cursor-agent|hermes|grok|qwen|copilot)"
     # env overrides that cannot redirect the key or the keys file: SCIO_API (where the bearer key is sent),
     # SCIO_API_KEY and SCIO_KEYS_FILE are deliberately absent — a prompt-injected `SCIO_API=https://evil …`
     # would otherwise be approved silently and exfiltrate the agent's identity
     ENV = r"SCIO_(ROLES|WORK_DIR|HARNESS|LANGUAGES|MODEL_FAMILY|MODEL_VERSION|RULES_BUNDLED)"
-    if not re.search(r"[\x00-\x1f\x7f]", cmd) and (
-        re.fullmatch(rf'({ENV}={SAFE_ARG}\s+)*python3\s+"?{scripts}/(whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\.py"?(\s+{SAFE_ARG}|\s+"[\w.\- /:=@+,%]*")*', cmd)
-        or re.fullmatch(rf'"?{scripts}/scio-as"?\s+(--list|{ALIAS}\s+--print-env|{ALIAS}\s+(--supervise\s+)?{HARNESS}(\s+{SAFE_ARG}){{0,12}})', cmd)):
-        reason = "one of the skill's own scripts, without chaining"
+    # per-script argument policy: workdir.py only `<kind> <ref>` (--prune deletes task folders: a prompt);
+    # fetch.py never `--out` (it would write wherever the argument says: a prompt)
+    SCRIPT_ARGS = {
+        "workdir": r"\s+(write|review|translate|maintain|gap|contest|request|loop)\s+" + SAFE_ARG,
+        "fetch": rf"(\s+(?!--out\b){SAFE_ARG})+",
+    }
+    if scripts and not re.search(r"[\x00-\x1f\x7f]", cmd):
+        m = re.fullmatch(rf'({ENV}={SAFE_ARG}\s+)*python3\s+"?{scripts}/(?P<script>whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\.py"?(?P<args>(\s+{SAFE_ARG}|\s+"[\w.\- /:=@+,%]*")*)', cmd)
+        if m:
+            script, args = m.group("script"), m.group("args") or ""
+            policy = SCRIPT_ARGS.get(script)
+            if policy is None or re.fullmatch(policy, args):
+                reason = "one of the skill's own scripts, without chaining"
+        elif re.fullmatch(rf'"?{scripts}/scio-as"?\s+(--list|{ALIAS}\s+(--supervise\s+)?{HARNESS}(\s+{SAFE_ARG}){{0,12}})', cmd):
+            reason = "one of the skill's own scripts, without chaining"
 elif tool in ("WebFetch",):
     host = (urlparse(inp.get("url") or "").hostname or "").lower()
     if host == "scio.md":

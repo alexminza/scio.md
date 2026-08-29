@@ -15,6 +15,25 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.path.dirname(HERE)
 SERVER = os.path.join(SKILL, "server", "scio_local.py")
 PY = shutil.which("python3") or sys.executable
+ROOT = os.path.dirname(os.path.dirname(SKILL))   # the plugin / repo root
+
+
+def write_hooks_absolute(path, deny_json):
+    """Rewrite a harness hooks file so every guard runs by absolute path and a guard that cannot start answers deny:
+    Cursor and Antigravity run hook commands from the workspace, where `python3 skills/scio/scripts/x.py` does not
+    exist — the adapter would never start and the harness would fall through to allow."""
+    if not os.path.exists(path):
+        return
+    txt = open(path).read()
+    def fix(m):
+        cmd = m.group(1)
+        cmd = re.sub(r"^python3 (?:\S*/)?skills/scio/scripts/(\S+?\.py)(?:\s*\|\|.*)?$", lambda mm: f'python3 "{os.path.join(ROOT, "skills", "scio", "scripts", mm.group(1))}"', cmd)
+        if "hook.py" in cmd and "||" not in cmd:
+            cmd += " || echo '" + deny_json.replace("'", "") + "'"
+        return '"command": ' + json.dumps(cmd)
+    txt = re.sub(r'"command":\s*"((?:[^"\\]|\\.)*)"', lambda m: fix(m).replace("\\", "\\"), txt)
+    open(path, "w").write(txt)
+    print(f"rewrote {path} with absolute guard paths")
 REMOTE = "https://scio.md/mcp"
 
 ap = argparse.ArgumentParser()
@@ -122,14 +141,14 @@ sandbox_mode = "workspace-write"
 
 [sandbox_workspace_write]
 network_access = true
-writable_roots = ["{os.path.expanduser('~/.config/scio')}"]
+writable_roots = ["{os.path.expanduser('~/.local/share/scio')}"]   # task folders only; the keys directory stays read-only
 ''')
     print(f"wrote {path} and {prof}; launch: scio-as <alias> codex --profile scio")
 elif h == "gemini":
     path = os.path.expanduser("~/.gemini/settings.json")
     def m(cfg):
         s = cfg.setdefault("mcpServers", {})
-        s["scio"] = {"httpUrl": REMOTE, "headers": {"Authorization": "Bearer $SCIO_API_KEY", "X-Scio-Harness": "gemini-cli"}, "trust": True, "excludeTools": ["scio_suspend"], "timeout": 120000}
+        s["scio"] = {"httpUrl": REMOTE, "headers": {"Authorization": "Bearer $SCIO_API_KEY", "X-Scio-Harness": "gemini-cli"}, "trust": True, "excludeTools": ["scio_contest", "scio_suspend"], "timeout": 120000}  # contest spends points, suspend is for arbiters: neither runs unattended
         s["scio-local"] = {"command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": "$SCIO_API_KEY"}, "trust": True, "timeout": 120000}
         cfg.setdefault("general", {}).setdefault("defaultApprovalMode", "auto_edit")
     merge_json(path, m, 0o644)
@@ -158,18 +177,18 @@ elif h == "kimi":
     open(cpath, "w").write(cur.rstrip("\n") + "\n\n# --- Scio (written by setup.py) ---" + rules + "# --- end Scio ---\n")
     print(f"wrote {cpath} permission rules; launch: scio-as <alias> kimi")
 elif h == "kimi-cli":
-    key = os.environ.get("SCIO_API_KEY") or (key_for(a.alias) if a.alias else None)
-    if not key:
-        sys.exit("kimi-cli stores the header literally: run through `scio-as <alias> python3 setup.py --harness kimi-cli` or pass --alias so the key is substituted")
-    cmds = [["kimi", "mcp", "add", "--transport", "http", "scio", REMOTE, "--header", "Authorization: Bearer " + key],
-            ["kimi", "mcp", "add", "--transport", "stdio", "scio-local", "--", PY, SERVER]]
-    if shutil.which("kimi"):
-        for c in cmds:
-            subprocess.run(c, check=False)
-        print("registered with kimi mcp add (kimi-cli); approve each server once when it offers 'always'. Launch: scio-as <alias> kimi")
-    else:
-        print("kimi not on PATH; run:\n  " + "\n  ".join(" ".join(x if " " not in x else repr(x) for x in c) for c in cmds))
+    # kimi-cli reads ~/.kimi/mcp.json — written directly, with bearerTokenEnvVar: `kimi mcp add --header "Authorization: Bearer <key>"`
+    # would put the key on argv (visible in `ps` and shell history) and store it literally
+    home = os.path.expanduser("~/.kimi")
+    def m(cfg):
+        s = cfg.setdefault("mcpServers", {})
+        s["scio"] = {"url": REMOTE, "bearerTokenEnvVar": "SCIO_API_KEY", "headers": {"X-Scio-Harness": "kimi-cli"}}
+        s["scio-local"] = {"command": PY, "args": [SERVER]}   # inherits SCIO_API_KEY from the launcher's environment
+    merge_json(os.path.join(home, "mcp.json"), m, 0o600)
+    print(f"wrote {home}/mcp.json; approve each server once when it offers 'always'. Launch: scio-as <alias> kimi")
 elif h in ("cursor", "windsurf"):
+    if h == "cursor":
+        write_hooks_absolute(os.path.join(ROOT, "hooks", "hooks-cursor.json"), '{"permission": "deny", "agent_message": "scio guard could not run"}')
     path = os.path.join(".cursor", "mcp.json") if (h == "cursor" and a.workspace) else os.path.expanduser("~/.cursor/mcp.json" if h == "cursor" else "~/.codeium/windsurf/mcp_config.json")
     urlkey = "url" if h == "cursor" else "serverUrl"
     def m(cfg):
@@ -204,7 +223,8 @@ elif h == "hermes":
     os.makedirs(home, exist_ok=True)
     cpath = os.path.join(home, "config.yaml")
     servers = {
-        "scio": {"url": REMOTE, "headers": {"Authorization": "Bearer ${SCIO_API_KEY}", "X-Scio-Harness": "hermes"}, "timeout": 120, "trust": "full"},
+        "scio": {"url": REMOTE, "headers": {"Authorization": "Bearer ${SCIO_API_KEY}", "X-Scio-Harness": "hermes"}, "timeout": 120, "trust": "full",
+                 "exclude_tools": ["scio_contest", "scio_suspend"]},   # contest spends points, suspend is for arbiters: not under full trust
         "scio-local": {"command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": "${SCIO_API_KEY}"}, "timeout": 120, "trust": "full"},
     }
     try:
@@ -233,14 +253,23 @@ elif h == "hermes":
         print("install the skill: " + " ".join(cmd))
     print("launch: hermes (the key comes from ~/.hermes/.env) or scio-as <alias> hermes")
 elif h == "openclaw":
-    # OpenClaw: saved MCP definitions via `openclaw mcp set <name> <json>`; it runs as a gateway, so the key is written
-    # into the definition (pass --alias) — `openclaw mcp doctor` will flag the literal; prefer a SecretRef if you use them.
+    # OpenClaw: saved MCP definitions via `openclaw mcp set <name> <json>`. It runs as a gateway and reads no launcher
+    # environment, so the key goes into ~/.openclaw/.env (mode 600, loaded by the gateway) and the definition carries a
+    # SecretRef to it — never the literal on argv (visible in `ps`, shell history) nor in the saved definition.
     key = os.environ.get("SCIO_API_KEY") or (key_for(a.alias) if a.alias else None)
     if not key:
-        sys.exit("OpenClaw runs as a service and reads no launcher environment: pass --alias so the key is written into its saved definition")
+        sys.exit("OpenClaw runs as a service and reads no launcher environment: pass --alias so the key is written to ~/.openclaw/.env")
+    home = os.path.expanduser("~/.openclaw")
+    os.makedirs(home, mode=0o700, exist_ok=True)
+    envp = os.path.join(home, ".env")
+    lines = [l for l in (open(envp).read().splitlines() if os.path.exists(envp) else []) if not l.startswith("SCIO_API_KEY=")]
+    fd = os.open(envp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write("\n".join(lines + [f"SCIO_API_KEY={key}"]) + "\n")
+    ref = {"source": "env", "provider": "default", "id": "SCIO_API_KEY"}
     defs = {
-        "scio": {"url": REMOTE, "transport": "streamable-http", "headers": {"Authorization": f"Bearer {key}", "X-Scio-Harness": "openclaw"}},
-        "scio-local": {"command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": key}},
+        "scio": {"url": REMOTE, "transport": "streamable-http", "headers": {"Authorization": {"prefix": "Bearer ", "secret": ref}, "X-Scio-Harness": "openclaw"}},
+        "scio-local": {"command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": ref}},
     }
     cmds = [["openclaw", "mcp", "set", n, json.dumps(d)] for n, d in defs.items()]
     if shutil.which("openclaw"):
@@ -249,8 +278,9 @@ elif h == "openclaw":
         subprocess.run(["openclaw", "mcp", "doctor"], check=False)
         print("skill: openclaw skills install git:evisoft/scio.md  (if not yet installed)")
     else:
-        print("openclaw not on PATH; run:\n  " + "\n  ".join(" ".join(x if not x.startswith("{") else "'" + x + "'" for x in c) for c in cmds).replace(key, "<key>"))
+        print("openclaw not on PATH; run:\n  " + "\n  ".join(" ".join(x if not x.startswith("{") else "'" + x + "'" for x in c) for c in cmds))
         print("  openclaw skills install git:evisoft/scio.md")
+    print(f"wrote SCIO_API_KEY to {envp} (mode 600); restart the gateway so it loads it")
 elif h == "grok":
     # Grok Build (xAI): Claude-compatible plugins — installs this repository as a plugin (skills, .mcp.json with
     # ${CLAUDE_PLUGIN_ROOT}/${SCIO_API_KEY} expanded, hooks) — plus native [permission] rules so Scio's tools never ask.
@@ -298,4 +328,5 @@ elif h == "antigravity":
         s["scio"] = {"serverUrl": REMOTE, "headers": {"Authorization": f"Bearer {key}", "X-Scio-Harness": "antigravity"}}
         s["scio-local"] = {"command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": key}}
     merge_json(path, m, 0o600)
+    write_hooks_absolute(os.path.join(ROOT, "hooks.json"), '{"decision": "deny", "reason": "scio guard could not run"}')
     print("add the lists from antigravity/permissions.md; the plugin's hooks.json runs the guards")

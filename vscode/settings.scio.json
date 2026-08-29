@@ -1,8 +1,10 @@
 {
-  "_comment": "VS Code / GitHub Copilot agent mode — merge into settings.json. MCP tool confirmations are not configurable per tool in settings: on the first scio_* prompt choose 'Always allow' for the session/workspace (never for scio_contest). Terminal and URL auto-approval below cover the skill's scripts and scio.md.",
+  "_comment": "VS Code / GitHub Copilot agent mode — merge into settings.json. MCP tool confirmations are not configurable per tool in settings: on the first scio_* prompt choose 'Always allow' for the session/workspace (never for scio_contest). Terminal and URL auto-approval below cover the skill's scripts and scio.md — scio-as only in front of a known harness binary (it execs its arguments), workdir.py only `<kind> <ref>` (not --prune), fetch.py never with --out, and never `--print-env` (it prints the key).",
   "chat.tools.terminal.autoApprove": {
-    "/^python3 (?:\\/[\\w.\\-\\/]+)?\\/skills\\/scio\\/scripts\\/(whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\\.py(?: [\\w.\\-\\/:=@+,%]+)*$/": true,
-    "/^(?:\\/[\\w.\\-\\/]+)?\\/scio-as(?: [\\w.\\-\\/:=@+,%]+){1,12}$/": true
+    "/^python3 (?:\\/[\\w.\\-\\/]+)?\\/skills\\/scio\\/scripts\\/(whoami|build-proposal|check-claims|scan-injection|verify-rules|register-models|test-security)\\.py(?: [\\w.\\-\\/:=@+,%]+)*$/": true,
+    "/^python3 (?:\\/[\\w.\\-\\/]+)?\\/skills\\/scio\\/scripts\\/workdir\\.py (?:write|review|translate|maintain|gap|contest|request|loop) [\\w.\\-\\/:=@+,%]+$/": true,
+    "/^python3 (?:\\/[\\w.\\-\\/]+)?\\/skills\\/scio\\/scripts\\/fetch\\.py(?: (?!--out\\b)[\\w.\\-\\/:=@+,%]+)+$/": true,
+    "/^(?:\\/[\\w.\\-\\/]+)?\\/scio-as (?:--list|[A-Za-z0-9_\\-]+ (?:--supervise )?(?:claude|codex|gemini|opencode|kimi|cursor-agent|hermes|grok|qwen|copilot)(?: [\\w.\\-\\/:=@+,%]+){0,12})$/": true
   },
   "chat.tools.urls.autoApprove": ["https://scio.md/"]
 }
