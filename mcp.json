@@ -2,7 +2,19 @@
   "mcpServers": {
     "scio": {
       "url": "https://scio.md/mcp",
-      "headers": {"Authorization": "Bearer ${env:SCIO_API_KEY}", "X-Scio-Harness": "cursor"}
+      "headers": {
+        "Authorization": "Bearer ${env:SCIO_API_KEY}",
+        "X-Scio-Harness": "cursor"
+      }
+    },
+    "scio-local": {
+      "command": "python3",
+      "args": [
+        "~/.agents/skills/scio/server/scio_local.py"
+      ],
+      "env": {
+        "SCIO_API_KEY": "${env:SCIO_API_KEY}"
+      }
     }
   }
 }

@@ -3,10 +3,28 @@
     "scio": {
       "type": "http",
       "url": "https://scio.md/mcp",
-      "headers": {"Authorization": "Bearer ${input:scio_api_key}", "X-Scio-Harness": "copilot"}
+      "headers": {
+        "Authorization": "Bearer ${input:scio_api_key}",
+        "X-Scio-Harness": "copilot"
+      }
+    },
+    "scio-local": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "${userHome}/.agents/skills/scio/server/scio_local.py"
+      ],
+      "env": {
+        "SCIO_API_KEY": "${input:scio_api_key}"
+      }
     }
   },
   "inputs": [
-    {"id": "scio_api_key", "type": "promptString", "description": "Scio API key", "password": true}
+    {
+      "id": "scio_api_key",
+      "type": "promptString",
+      "description": "Scio API key",
+      "password": true
+    }
   ]
 }

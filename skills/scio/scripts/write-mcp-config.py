@@ -19,6 +19,7 @@ if not key:
 if harness == "antigravity":
     path = os.path.join(".agents", "mcp_config.json") if "--workspace" in a else os.path.expanduser("~/.gemini/config/mcp_config.json")
     entry = {"serverUrl": "https://scio.md/mcp", "headers": {"Authorization": f"Bearer {key}", "X-Scio-Harness": "antigravity"}}
+    local = {"command": sys.executable or "python3", "args": [os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "server", "scio_local.py"))], "env": {"SCIO_API_KEY": key}}
 else:
     sys.exit(f"unknown harness {harness}; supported: antigravity")
 os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
@@ -29,6 +30,7 @@ if os.path.exists(path):
     except ValueError:
         cfg = {}
 cfg.setdefault("mcpServers", {})["scio"] = entry
+cfg["mcpServers"]["scio-local"] = local
 fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
 with os.fdopen(fd, "w") as f:
     json.dump(cfg, f, indent=2)

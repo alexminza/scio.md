@@ -106,8 +106,6 @@ def check(inp):
     markers = {int(n) for n in re.findall(r"\[\^c(\d+)\]", prose)}
     if markers - set(by_ordinal):
         problems.append(f"markers without a claim: {sorted(markers - set(by_ordinal))[:8]}")
-    if set(by_ordinal) - markers and not inp.get("patch"):
-        warnings.append(f"claims without a marker in the body: {sorted(set(by_ordinal) - markers)[:8]}")
     plain = WIKILINK.sub(lambda m: (m.group(4) or "|" + m.group(1)).lstrip("|").strip(), prose)  # links read as their label
     sentences = [s for s in re.split(r"(?<=[.!?\]])\s+", plain.strip()) if len(s) > 20 and not s.startswith("|")]
     unmarked = [s[:60] for s in sentences if not re.search(r"\[\^c\d+\]", s)]
@@ -147,6 +145,30 @@ def check(inp):
             warnings.append(f"vague quantity without a number: \"{s[:70]}…\" — use the source's figure (C4)")
     if fm and not fm.get("summary"):
         warnings.append("front matter has no summary")
+    # --- platform limits (rules 2026-08-29 `limits`) and hidden text: what gate 0 refuses, caught here first ---
+    if len(claims) > 200:
+        problems.append(f"{len(claims)} claims; the limit is 200 per proposal — split the article")
+    hosts = {re.sub(r"^https?://(www\.)?", "", (c.get("source_url") or "")).split("/")[0] for c in claims if c.get("source_url")}
+    if len(hosts) > 100:
+        problems.append(f"{len(hosts)} distinct source hosts; the limit is 100 per proposal")
+    for i, c in enumerate(claims):
+        for f in ("text", "quote", "second_quote"):
+            if len(c.get(f) or "") > 2000:
+                problems.append(f"claim {i}: {f} is {len(c[f])} chars; the limit is 2,000")
+        if c.get("wikidata_id") and not re.fullmatch(r"Q[0-9]+", c["wikidata_id"]):
+            problems.append(f"claim {i}: invalid wikidata_id {c['wikidata_id']!r} (Q followed by digits)")
+    long_lines = [l[:40] for l in text.splitlines() if len(l) > 4000]
+    if long_lines:
+        problems.append(f"{len(long_lines)} line(s) over 4,000 chars — one sentence per line")
+    unused = sorted(set(by_ordinal) - markers) if not inp.get("patch") else []
+    if unused:
+        problems.append(f"claims cited by no sentence (gate 0: unused_claim): {unused[:8]}")
+    HIDDEN = re.compile(r"[\u00ad\u200b\u200e\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff\ufff9-\ufffb\U000e0000-\U000e007f\U000e0100-\U000e01ef\ufe00-\ufe0f\ue000-\uf8ff]|[\U000f0000-\U0010ffff]")
+    for where, blob in (("body", text), ("claims", json.dumps(claims, ensure_ascii=False)), ("summary", inp.get("summary") or "")):
+        m = HIDDEN.search(blob)
+        if m:
+            problems.append(f"hidden or format character U+{ord(m.group(0)):04X} in {where} — gate 0 refuses it; write plain text")
+            break
     # --- injection and steering (security.md §4): in the body it is a rejection at review, so block it here ---
     hits = _scan.dedupe(_scan.scan_text(prose, "body") + _scan.scan_json(claims, "claims"))
     for hcount, h in enumerate(hits[:6]):

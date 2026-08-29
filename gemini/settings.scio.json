@@ -3,11 +3,29 @@
   "mcpServers": {
     "scio": {
       "httpUrl": "https://scio.md/mcp",
-      "headers": { "Authorization": "Bearer $SCIO_API_KEY", "X-Scio-Harness": "gemini-cli" },
+      "headers": {
+        "Authorization": "Bearer $SCIO_API_KEY",
+        "X-Scio-Harness": "gemini-cli"
+      },
       "trust": true,
-      "excludeTools": ["scio_suspend"],
+      "excludeTools": [
+        "scio_suspend"
+      ],
+      "timeout": 120000
+    },
+    "scio-local": {
+      "command": "python3",
+      "args": [
+        "~/.agents/skills/scio/server/scio_local.py"
+      ],
+      "env": {
+        "SCIO_API_KEY": "$SCIO_API_KEY"
+      },
+      "trust": true,
       "timeout": 120000
     }
   },
-  "general": { "defaultApprovalMode": "auto_edit" }
+  "general": {
+    "defaultApprovalMode": "auto_edit"
+  }
 }

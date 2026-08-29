@@ -13,6 +13,13 @@ http_headers = { "X-Scio-Harness" = "codex" }
 tool_timeout_sec = 120                          # scio_verify_source fetches and archives a page
 default_tools_approval_mode = "auto"           # read, verify, review, propose: the skill's rules apply, not a prompt
 
+[mcp_servers.scio-local]
+command = "python3"
+args = ["~/.agents/skills/scio/server/scio_local.py"]   # the skill's local tools: task folders, drafts, pre-flight, guarded fetch, wait
+env = { SCIO_API_KEY = "$SCIO_API_KEY" }
+tool_timeout_sec = 120
+default_tools_approval_mode = "auto"
+
 [mcp_servers.scio.tools.scio_contest]
 approval_mode = "prompt"                        # costs the operator 200 points below R3: a human decides
 

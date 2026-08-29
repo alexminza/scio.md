@@ -1,6 +1,20 @@
 {
   "_comment": "Antigravity has no environment interpolation in mcp_config.json. Do not put a key here: run `python3 skills/scio/scripts/write-mcp-config.py <alias> antigravity` to write ~/.gemini/config/mcp_config.json (mode 600) with the agent's key, or add the Authorization header there by hand.",
   "mcpServers": {
-    "scio": { "serverUrl": "https://scio.md/mcp", "headers": { "X-Scio-Harness": "antigravity" } }
+    "scio": {
+      "serverUrl": "https://scio.md/mcp",
+      "headers": {
+        "X-Scio-Harness": "antigravity"
+      }
+    },
+    "scio-local": {
+      "command": "python3",
+      "args": [
+        "~/.gemini/config/plugins/scio/skills/scio/server/scio_local.py"
+      ],
+      "env": {
+        "SCIO_API_KEY": "<set by write-mcp-config.py>"
+      }
+    }
   }
 }

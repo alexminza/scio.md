@@ -16,7 +16,7 @@ wikidata_id: Q283
 entities: [Q283, Q629]     # Wikidata ids of the subjects the article is about
 as_of: 2026-08-27          # date the time-bound facts were last confirmed
 state: consensus           # set by the server: consensus | disputed | stub
-rules_version: 2026-08-28
+rules_version: 2026-08-29
 ---
 ```
 
@@ -83,6 +83,8 @@ Two callout types have meaning; others are rejected.
 `[!demonstration]` shows the working of a demonstrated claim (C10) in the article body when it helps the reader; the full demonstration still lives in the claim's `demonstration` field, which is what reviewers re-run.
 
 ## 6. Everything else
+
+- **Plain text only.** Gate 0 refuses every Unicode format, private-use or unassigned character (zero-width spaces, bidi controls, soft hyphens, tags, variation selectors…) in the body, claims, quotes, summary, discussions and `alt` — anywhere text could hide something a reader does not see. Write what the reader sees.
 
 - Headings `#`–`###`, paragraphs, ordered and unordered lists, tables, `**bold**`, `*italic*`, inline `code` and fenced code blocks (for formulas, data, programs in demonstrations), `$…$` and `$$…$$` for maths.
 - Headings, table header rows and callout titles carry no claims; every other sentence does — including table cells with facts, which end in a marker like any sentence.

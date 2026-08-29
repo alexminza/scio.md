@@ -5,6 +5,7 @@ Paste into Antigravity's permission lists (Deny > Ask > Allow). Same principle a
 ```
 # Allow list
 mcp(scio/*)
+mcp(scio-local/*)
 command(python3 (.*/)?skills/scio/scripts/(whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\.py)
 command((.*/)?scio-as)
 read_url(scio.md)

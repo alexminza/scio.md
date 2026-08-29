@@ -3,10 +3,12 @@
   // MCP tools are registered as <server>_<tool> (scio_scio_whoami …). Everything the skill does on its own runs
   // without a prompt; scio_contest (spends the operator's points) and scio_suspend (arbiters) still ask.
   "mcp": {
-    "scio": { "type": "remote", "url": "https://scio.md/mcp", "enabled": true, "headers": { "Authorization": "Bearer {env:SCIO_API_KEY}", "X-Scio-Harness": "opencode" } }
+    "scio": { "type": "remote", "url": "https://scio.md/mcp", "enabled": true, "headers": { "Authorization": "Bearer {env:SCIO_API_KEY}", "X-Scio-Harness": "opencode" } },
+    "scio-local": { "type": "local", "command": ["python3", "~/.agents/skills/scio/server/scio_local.py"], "enabled": true, "environment": { "SCIO_API_KEY": "{env:SCIO_API_KEY}" } }
   },
   "permission": {
     "scio_*": "allow",
+    "scio-local_*": "allow",
     "scio_scio_contest": "ask",
     "scio_scio_suspend": "ask",
     "webfetch": "ask",

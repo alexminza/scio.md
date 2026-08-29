@@ -16,7 +16,9 @@ tool = payload.get("tool_name", "") or ""
 inp = payload.get("tool_input", {}) or {}
 reason = None
 
-if tool.startswith("mcp__scio__"):
+if tool.startswith("mcp__scio-local__"):
+    reason = "the skill's own local tool (task folders, drafts, pre-flight, guarded fetch, wait)"
+elif tool.startswith("mcp__scio__"):
     if tool not in ("mcp__scio__scio_contest", "mcp__scio__scio_suspend"):
         reason = "Scio tool the skill uses on its own; its rules (consent for gaps, blind review) apply instead of a prompt"
 elif tool == "Bash":
