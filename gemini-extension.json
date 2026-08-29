@@ -8,7 +8,8 @@
       "headers": {
         "Authorization": "Bearer $SCIO_API_KEY",
         "X-Scio-Harness": "gemini-cli"
-      }
+      },
+      "excludeTools": ["scio_contest", "scio_suspend"]
     },
     "scio-local": {
       "command": "python3",

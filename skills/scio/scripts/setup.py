@@ -34,6 +34,21 @@ def write_hooks_absolute(path, deny_json):
     txt = re.sub(r'"command":\s*"((?:[^"\\]|\\.)*)"', lambda m: fix(m).replace("\\", "\\"), txt)
     open(path, "w").write(txt)
     print(f"rewrote {path} with absolute guard paths")
+SCRIPTS = os.path.join(SKILL, "scripts")
+
+
+def render(path, escape=None):
+    """A permission snippet with the placeholder __SCIO_SCRIPTS__ replaced by the absolute scripts directory —
+    escaped for the harness's pattern language (a regex in VS Code and Antigravity, a glob in OpenCode). Only the
+    absolute directory is approved: a wildcard prefix would approve a planted /tmp/x/skills/scio/scripts/x.py too."""
+    txt = open(path).read()
+    return txt.replace("__SCIO_SCRIPTS__", escape(SCRIPTS) if escape else SCRIPTS)
+
+
+def opencode_bash_rules():
+    """The bash permission rules of opencode/opencode.scio.jsonc with absolute paths, as a dict (first match wins)."""
+    txt = "\n".join(l for l in render(os.path.join(ROOT, "opencode", "opencode.scio.jsonc")).splitlines() if not l.strip().startswith("//"))
+    return json.loads(txt)["permission"]["bash"]
 REMOTE = "https://scio.md/mcp"
 
 ap = argparse.ArgumentParser()
@@ -204,6 +219,8 @@ elif h == "copilot":
         s["scio"] = {"type": "http", "url": REMOTE, "headers": {"Authorization": "Bearer ${env:SCIO_API_KEY}", "X-Scio-Harness": "copilot"}}
         s["scio-local"] = {"type": "stdio", "command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": "${env:SCIO_API_KEY}"}}
     merge_json(path, m, 0o644)
+    print("merge into VS Code settings.json (terminal + URL auto-approval, absolute script paths):")
+    print(render(os.path.join(ROOT, "vscode", "settings.scio.json"), lambda d: json.dumps(re.escape(d).replace("/", "\\/"))[1:-1]))
     print("launch: scio-as <alias> code .")
 elif h == "opencode":
     path = os.path.expanduser("~/.config/opencode/opencode.json")
@@ -214,6 +231,18 @@ elif h == "opencode":
         p = cfg.setdefault("permission", {}) if isinstance(cfg.get("permission"), dict) or "permission" not in cfg else None
         if p is not None:
             p.update({"scio_*": "allow", "scio-local_*": "allow", "scio_scio_contest": "ask", "scio_scio_suspend": "ask"})
+            bash = p.get("bash")
+            if not isinstance(bash, dict):
+                bash = p["bash"] = {}
+            # absolute script paths only; existing rules keep their place (OpenCode takes the first match) — a rule of
+            # ours already there is replaced in place, new ones go before any catch-all
+            ours = opencode_bash_rules()
+            merged = {k: (ours.pop(k) if k in ours else v) for k, v in bash.items() if not (k == "*" or k.endswith("scio-as *"))}
+            merged.update(ours)
+            for k in ("*scio-as *", "*"):
+                if k in bash or k in ours:
+                    merged[k] = "ask"
+            p["bash"] = merged
     merge_json(path, m, 0o644)
     print("launch: scio-as <alias> opencode")
 elif h == "hermes":
@@ -329,4 +358,5 @@ elif h == "antigravity":
         s["scio-local"] = {"command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": key}}
     merge_json(path, m, 0o600)
     write_hooks_absolute(os.path.join(ROOT, "hooks.json"), '{"decision": "deny", "reason": "scio guard could not run"}')
-    print("add the lists from antigravity/permissions.md; the plugin's hooks.json runs the guards")
+    print("add these lists (antigravity/permissions.md with absolute script paths); the plugin's hooks.json runs the guards:")
+    print(render(os.path.join(ROOT, "antigravity", "permissions.md"), re.escape).split("```")[1].strip())

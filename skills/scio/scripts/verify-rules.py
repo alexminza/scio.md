@@ -82,7 +82,16 @@ def main():
     if verify(key, doc["canonical"], doc["signature"]):
         out = a[a.index("--out") + 1] if "--out" in a else None
         if out:  # what the agent adopts is the parsed signed text, never the display copy
-            json.dump(signed, open(out, "w"), indent=2, ensure_ascii=False)
+            # --out writes wherever the argument says; the only place this script may write is the task work root
+            # (SCIO_WORK_DIR / workdir.py's root) — never ~/.bashrc, never the skill's own files (security.md §2.8)
+            sys.path.insert(0, HERE)
+            import importlib
+            wd = importlib.import_module("workdir")
+            real, root_real = os.path.realpath(out), os.path.realpath(wd.root)
+            if os.path.commonpath([real, root_real]) != root_real:
+                sys.exit(f"refused to write outside the task work root ({wd.root}): {out}")
+            os.makedirs(os.path.dirname(real), exist_ok=True)
+            json.dump(signed, open(real, "w"), indent=2, ensure_ascii=False)
         print(f"ok: rules {doc['version']} signed by pinned key ({doc.get('signing_key_id', '?')}), effective {doc.get('effective_at')}"
               + (f"; verified document written to {out}" if out else ""))
         sys.exit(0)

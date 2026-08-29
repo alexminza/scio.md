@@ -2,7 +2,7 @@
 """Regression test for the skill's defences: every fixture in assets/redteam must still be caught, every clean
 fixture must still pass. Run after any change to scan-injection.py, check-claims.py, guard-*.py or the fixtures.
 Exit 0 when all expectations hold, 1 otherwise. (P0 applied to ourselves: a defence is verified, not assumed.)"""
-import glob, json, os, subprocess, sys
+import glob, json, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIX = os.path.join(HERE, "..", "assets", "redteam")
@@ -160,6 +160,56 @@ expect("(?:claude|codex|gemini|opencode|kimi|cursor-agent|hermes|grok|qwen|copil
 expect('"*scio-as *": "ask"' in oc and '"*scio-as *": "allow"' not in oc, "7: OpenCode asks for an arbitrary scio-as")
 expect("command((.*/)?scio-as)" in ag.split("# Ask list")[1], "7: Antigravity has scio-as on Ask")
 expect("hooks-cursor.json" in setup and "write_hooks_absolute" in setup, "17: setup.py rewrites Cursor/Antigravity hook paths to absolute")
+
+# --- the review of v0.3.12 ------------------------------------------------------------------------------------
+print("\nthe review of v0.3.12")
+expect(approve(f"python3 {S}/verify-rules.py /tmp/served.json --out /tmp/out.json") is None, "2: verify-rules.py --out is not auto-approved")
+expect(approve(f"python3 {S}/verify-rules.py /tmp/served.json") == "allow", "2: verify-rules.py without --out still is")
+expect(approve(f"python3 {S}/fetch.py https://example.com --max-bytes 999999999") is None, "6: fetch.py --max-bytes above the 200 KB budget is not auto-approved")
+expect(approve(f"python3 {S}/fetch.py https://example.com --max-bytes 200000") == "allow", "6: fetch.py --max-bytes 200000 still is")
+expect("min(int(a[a.index(\"--max-bytes\") + 1]), 200_000)" in open(os.path.join(HERE, "fetch.py")).read()
+       and "min(int(a[\"max_bytes\"]), 200_000)" in open(os.path.join(HERE, "..", "server", "scio_local.py")).read(), "6: fetch.py and scio-local clamp max_bytes")
+for name, txt in (("VS Code", vs), ("OpenCode", "\n".join(l for l in oc.splitlines() if not l.strip().startswith("//"))), ("Antigravity", ag)):
+    expect("__SCIO_SCRIPTS__" in txt and "(?:\\/[\\w.\\-\\/]+)?" not in txt and "*skills/scio/scripts/" not in txt and "(.*/)?skills/scio" not in txt,
+           f"1: {name} approves only the absolute scripts directory (placeholder, no wildcard prefix)")
+vs_rule = lambda script: next(l for l in vs.splitlines() if f"/{script}\\\\.py" in l)
+expect("(?!--out\\\\b)" in vs_rule("verify-rules") and '"python3 __SCIO_SCRIPTS__/verify-rules.py *--out*": "ask"' in oc
+       and "verify-rules\\.py .*--out" in ag.split("# Ask list")[1], "2: VS Code / OpenCode / Antigravity ask for verify-rules.py --out")
+expect("--max-bytes (?:[1-9]\\\\d{0,4}|1\\\\d{5}|200000)" in vs_rule("fetch") and "(?!--max-bytes\\\\b)" in vs_rule("fetch"), "6: VS Code caps fetch.py --max-bytes")
+gx = json.load(open(os.path.join(ROOT, "gemini-extension.json")))["mcpServers"]["scio"]
+expect(gx.get("excludeTools") == ["scio_contest", "scio_suspend"], "3: gemini-extension.json excludes contest/suspend")
+for hf in ("hooks.json", os.path.join("hooks", "hooks-cursor.json")):
+    cmds = re.findall(r'"command":\s*"((?:[^"\\]|\\.)*)"', open(os.path.join(ROOT, hf)).read())
+    expect(cmds and all(not c.startswith("python3 skills/") for c in cmds) and all("|| echo" in c and "deny" in c for c in cmds if "hook.py" in c),
+           f"4: {hf} ships absolute guard paths with a deny fallback")
+CC = os.path.join(HERE, "..", "assets", "redteam", "nondict.tmp.json")
+json.dump({"body": "x", "claims": ["not-a-dict"]}, open(CC, "w"))
+try:
+    r = subprocess.run([PY, os.path.join(HERE, "check-claims.py"), CC], capture_output=True, text=True, env=aenv)
+finally:
+    os.remove(CC)
+expect("Traceback" not in r.stderr and "must be an object" in r.stdout + r.stderr, "5: check-claims.py CLI reports a non-object claim instead of crashing")
+# verify-rules.py --out only inside the task work root: a document signed with a throwaway key
+try:
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives import serialization
+    import base64, tempfile
+    k = Ed25519PrivateKey.generate()
+    pub = base64.b64encode(k.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)).decode()
+    rules = {"version": "2026-08-29", "limits": {}}
+    canonical = json.dumps(rules, sort_keys=True, separators=(",", ":"))
+    doc = {"version": rules["version"], "rules": rules, "canonical": canonical, "signature": base64.b64encode(k.sign(canonical.encode())).decode()}
+    with tempfile.TemporaryDirectory() as d:
+        src = os.path.join(d, "served.json"); json.dump(doc, open(src, "w"))
+        wd = os.path.join(d, "work"); os.makedirs(wd)
+        outside = os.path.join(d, "bashrc")
+        r1 = subprocess.run([PY, os.path.join(HERE, "verify-rules.py"), src, "--key", pub, "--out", outside], capture_output=True, text=True, env=dict(aenv, SCIO_WORK_DIR=wd))
+        expect(r1.returncode != 0 and not os.path.exists(outside), "2: verify-rules.py refuses --out outside the task work root")
+        inside = os.path.join(wd, "rules.json")
+        r2 = subprocess.run([PY, os.path.join(HERE, "verify-rules.py"), src, "--key", pub, "--out", inside], capture_output=True, text=True, env=dict(aenv, SCIO_WORK_DIR=wd))
+        expect(r2.returncode == 0 and json.load(open(inside)) == rules, "2: verify-rules.py writes --out inside the task work root")
+except ImportError:
+    print("  (cryptography not installed: verify-rules.py --out root check not exercised)")
 
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

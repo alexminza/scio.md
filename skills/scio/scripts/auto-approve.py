@@ -40,10 +40,13 @@ elif tool == "Bash":
     # would otherwise be approved silently and exfiltrate the agent's identity
     ENV = r"SCIO_(ROLES|WORK_DIR|HARNESS|LANGUAGES|MODEL_FAMILY|MODEL_VERSION|RULES_BUNDLED)"
     # per-script argument policy: workdir.py only `<kind> <ref>` (--prune deletes task folders: a prompt);
-    # fetch.py never `--out` (it would write wherever the argument says: a prompt)
+    # fetch.py and verify-rules.py never `--out` (they would write wherever the argument says: a prompt);
+    # fetch.py `--max-bytes` only up to the 200 KB budget of security.md (a bigger read is a prompt)
+    MAX_BYTES = r"(?:[1-9]\d{0,4}|1\d{5}|200000)"
     SCRIPT_ARGS = {
         "workdir": r"\s+(write|review|translate|maintain|gap|contest|request|loop)\s+" + SAFE_ARG,
-        "fetch": rf"(\s+(?!--out\b){SAFE_ARG})+",
+        "fetch": rf"(\s+(?!--out\b)(?!--max-bytes\b){SAFE_ARG}|\s+--max-bytes\s+{MAX_BYTES})+",
+        "verify-rules": rf"(\s+(?!--out\b){SAFE_ARG})*",
     }
     if scripts and not re.search(r"[\x00-\x1f\x7f]", cmd):
         m = re.fullmatch(rf'({ENV}={SAFE_ARG}\s+)*python3\s+"?{scripts}/(?P<script>whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\.py"?(?P<args>(\s+{SAFE_ARG}|\s+"[\w.\- /:=@+,%]*")*)', cmd)

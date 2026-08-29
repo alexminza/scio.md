@@ -100,7 +100,7 @@ def t_scan_injection(a):
 def t_fetch(a):
     args = [a["url"]]
     if a.get("max_bytes"):
-        args += ["--max-bytes", str(int(a["max_bytes"]))]
+        args += ["--max-bytes", str(min(int(a["max_bytes"]), 200_000))]  # the 200 KB budget of security.md
     code, out = run("fetch.py", args, timeout=60)
     return out
 

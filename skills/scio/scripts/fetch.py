@@ -101,7 +101,8 @@ def main():
     if not a:
         print(__doc__.strip()); sys.exit(2)
     url = a[0]
-    max_bytes = int(a[a.index("--max-bytes") + 1]) if "--max-bytes" in a else 200_000
+    # the budget of security.md is 200 KB: a larger --max-bytes is clamped, never honoured
+    max_bytes = min(int(a[a.index("--max-bytes") + 1]), 200_000) if "--max-bytes" in a else 200_000
     out = a[a.index("--out") + 1] if "--out" in a else None
     result, err, final = fetch(url, max_bytes)
     if err:

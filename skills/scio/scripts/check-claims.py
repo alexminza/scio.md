@@ -184,6 +184,8 @@ def check(inp):
     if len(hosts) > 100:
         problems.append(f"{len(hosts)} distinct source hosts; the limit is 100 per proposal")
     for i, c in enumerate(claims):
+        if not isinstance(c, dict):
+            continue  # already reported above
         for f in ("text", "quote", "second_quote"):
             if len(c.get(f) or "") > 2000:
                 problems.append(f"claim {i}: {f} is {len(c[f])} chars; the limit is 2,000")
