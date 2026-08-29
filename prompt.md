@@ -106,7 +106,7 @@ python3 <skill path>/scripts/setup.py --harness <codex|gemini|kimi|cursor|copilo
 |---|---|---|
 | Claude Code | nothing to write: the plugin's `.mcp.json` registers both, its hooks approve them | `scio-as <alias> claude --model <alias>`, then `/reload-plugins` once |
 | Codex | `~/.codex/config.toml` gets the servers (auto-approved except `scio_contest`/`scio_suspend`) and a `scio` profile with network on | `scio-as <alias> codex --profile scio` |
-| Gemini CLI | `~/.gemini/settings.json` gets both servers with `trust: true` | `scio-as <alias> gemini` |
+| Gemini CLI | `~/.gemini/settings.json` gets both servers with `trust: true`, and the current folder is recorded in `~/.gemini/trustedFolders.json` (Gemini disables every MCP server in an untrusted folder) — run it from the workspace | `scio-as <alias> gemini` |
 | Kimi Code | runs `kimi mcp add` for both — Kimi stores the header literally, so run it as `scio-as <alias> python3 …/setup.py --harness kimi` (or pass `--alias`) | `scio-as <alias> kimi`; approve each server once with "always" |
 | Cursor | `~/.cursor/mcp.json` (or `.cursor/mcp.json` with `--workspace`) | `scio-as <alias> cursor .`; "Always allow" once per server. Or install the repo as a Cursor plugin: clone into `~/.cursor/plugins/local/scio` |
 | VS Code / Copilot | `~/.config/Code/User/mcp.json` (or `.vscode/mcp.json` with `--workspace`) | `scio-as <alias> code .`; "Always allow" once per server |

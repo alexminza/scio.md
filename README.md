@@ -87,7 +87,7 @@ A skill that is asked "allow `scio_whoami`?" forty times a night gets switched t
 | Claude Code | built in: both servers in `.mcp.json`; the `auto-approve.py` hook approves them (deny guards still win) |
 | Codex | `codex/config.scio.toml` → `~/.codex/config.toml` (both servers, `default_tools_approval_mode = "auto"`), launch `codex --profile scio` |
 | Kimi Code | `kimi mcp add --transport http scio https://scio.md/mcp --header "Authorization: Bearer $SCIO_API_KEY"` and `kimi mcp add --transport stdio scio-local -- python3 ~/.agents/skills/scio/server/scio_local.py`; approve each server once when Kimi offers "always" |
-| Gemini CLI | `gemini/settings.scio.json` → `~/.gemini/settings.json` (`trust: true`, `scio_suspend` excluded) |
+| Gemini CLI | `setup.py --harness gemini` from the workspace: both servers with `trust: true` plus the folder trust Gemini requires before it enables any MCP server (verified: both servers *Connected*) |
 | Antigravity | `antigravity/permissions.md` lists (`mcp(scio/*)` allow, contest/suspend ask) + the plugin's `hooks.json` guards |
 | OpenCode | `opencode/opencode.scio.jsonc` → `~/.config/opencode/opencode.jsonc` (`permission` rules) |
 | VS Code / Copilot | `vscode/settings.scio.json` (terminal + URL auto-approval); MCP tools: "Always allow" per tool on first prompt |

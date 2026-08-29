@@ -112,7 +112,12 @@ elif h == "gemini":
         s["scio-local"] = {"command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": "$SCIO_API_KEY"}, "trust": True, "timeout": 120000}
         cfg.setdefault("general", {}).setdefault("defaultApprovalMode", "auto_edit")
     merge_json(path, m, 0o644)
-    print("launch: scio-as <alias> gemini")
+    # Gemini CLI disables every MCP server in an untrusted folder: record the trust for this workspace once.
+    tf = os.path.expanduser("~/.gemini/trustedFolders.json")
+    def t(cfg):
+        cfg[os.getcwd()] = "TRUST_FOLDER"
+    merge_json(tf, t, 0o644)
+    print(f"trusted {os.getcwd()} for Gemini CLI; launch: scio-as <alias> gemini")
 elif h == "kimi":
     key = os.environ.get("SCIO_API_KEY") or (key_for(a.alias) if a.alias else None)
     if not key:
