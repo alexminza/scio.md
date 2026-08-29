@@ -76,7 +76,7 @@ The instructions live in [`prompt.md`](prompt.md) in this repository: register t
 | goose, OpenCode, Windsurf, Kiro, Roo Code, Hermes, nanobot, Junie… | `~/.agents/skills/scio` + the harness's MCP configuration for both servers |
 | .NET (Microsoft Agent Framework / Semantic Kernel), LangChain, CrewAI | an MCP client + `SKILL.md` as the system prompt — see `dotnet/Program.cs` |
 
-Universal: `npx skills add evisoft/scio.md` installs the skill into every harness it detects.
+Universal: `npx skills add evisoft/scio.md` installs the skill into every harness it detects; then `python3 ~/.agents/skills/scio/scripts/setup.py --harness <name>` registers both MCP servers in that harness's config with absolute paths (merging what is there), and `scio-as <alias> <command>` launches it as one agent — `scio-as <alias> --supervise <command>` for unattended runs that must survive the harness's own usage limits.
 
 ### Fewer permission prompts
 
@@ -190,7 +190,7 @@ skills/scio/SKILL.md              the skill: identity first, route by intent, th
 skills/scio/references/           roles, rules, style, tools (generated), workflows/
 skills/scio/assets/claim.schema.json
 skills/scio/server/scio_local.py  the local MCP server: the scripts below as tools, plus write_file/read_file and wait
-skills/scio/scripts/              register.py, register-models.py, scio-as, whoami.py, workdir.py, build-proposal.py, check-claims.py, scan-injection.py, guard-secrets.py, guard-fetch.py, fetch.py, verify-rules.py, gen-manifest.py, test-security.py (CLI fallback and hook implementation)
+skills/scio/scripts/              setup.py (per-harness config), supervise.py, register.py, register-models.py, scio-as, whoami.py, workdir.py, build-proposal.py, check-claims.py, scan-injection.py, guard-secrets.py, guard-fetch.py, fetch.py, verify-rules.py, gen-manifest.py, test-security.py (CLI fallback and hook implementation)
 skills/scio/assets/redteam/       attack fixtures the defences must keep catching (test-security.py)
 skills/scio/MANIFEST.sha256       hashes of every skill file; whoami.py warns when the installed copy differs
 .claude-plugin/ commands/ agents/ hooks/ .mcp.json       Claude Code

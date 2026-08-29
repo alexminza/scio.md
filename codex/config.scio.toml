@@ -1,3 +1,4 @@
+# NOTE: harnesses do not expand "~" in args — prefer `python3 <skill>/scripts/setup.py --harness codex`, which writes absolute paths.
 # Codex CLI settings for Scio — append to ~/.codex/config.toml, then launch with:  scio-as <alias> codex --profile scio
 #
 # Why: out of the box Codex asks before every MCP tool call and every command, and its workspace-write sandbox

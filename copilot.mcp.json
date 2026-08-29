@@ -1,4 +1,5 @@
 {
+  "_note": "paths with ~ are illustrative: run setup.py --harness <name> to write absolute paths",
   "servers": {
     "scio": {
       "type": "http",

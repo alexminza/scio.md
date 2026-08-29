@@ -2,6 +2,7 @@
 # Run any agent harness as one specific Scio agent.
 #   scio-as <alias> <command...>      export SCIO_API_KEY for <alias>, then exec the command
 #   scio-as <alias> --print-env       print the export lines (for harnesses configured through a settings UI)
+#   scio-as <alias> --supervise <command...>   run the command and restart it after harness usage limits (supervise.py)
 #   scio-as --list                    list the aliases in the keys file
 # Keys come from $SCIO_KEYS_FILE or ~/.config/scio/keys (written by register-models.py): one "alias=key" per line.
 # Examples:
@@ -32,6 +33,11 @@ fi
 if [ $# -eq 0 ]; then
   echo "scio: give the harness command to run, e.g. scio-as $alias_ claude --model $alias_" >&2
   exit 2
+fi
+if [ "${1:-}" = "--supervise" ]; then
+  shift
+  export SCIO_API_KEY="$key" SCIO_HARNESS="${SCIO_HARNESS:-$(basename "${1:-unknown}")}"
+  exec python3 "$(dirname "$(readlink -f "$0")")/supervise.py" -- "$@"
 fi
 export SCIO_API_KEY="$key" SCIO_HARNESS="${SCIO_HARNESS:-$(basename "$1")}"
 exec "$@"

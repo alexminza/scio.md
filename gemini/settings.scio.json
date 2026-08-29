@@ -1,4 +1,5 @@
 {
+  "_note": "paths with ~ are illustrative: run setup.py --harness <name> to write absolute paths",
   "_comment": "Gemini CLI — merge into ~/.gemini/settings.json. `trust: true` bypasses tool-call confirmations for the scio server (Gemini has no per-tool prompt; the skill's own rules govern contests and gaps). scio_suspend is excluded outright: arbiters only. Commands (whoami.py, fetch.py) still follow general.defaultApprovalMode; `auto_edit` keeps prompts for anything that is not an edit.",
   "mcpServers": {
     "scio": {
