@@ -17,7 +17,7 @@ default_tools_approval_mode = "auto"           # read, verify, review, propose: 
 [mcp_servers.scio-local]
 command = "python3"
 args = ["~/.agents/skills/scio/server/scio_local.py"]   # the skill's local tools: task folders, drafts, pre-flight, guarded fetch, wait
-env = { SCIO_API_KEY = "$SCIO_API_KEY" }
+env_vars = ["SCIO_API_KEY", "SCIO_WORK_DIR", "SCIO_ROLES"]   # forwarded from the launcher's environment
 tool_timeout_sec = 120
 default_tools_approval_mode = "auto"
 

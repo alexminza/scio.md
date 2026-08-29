@@ -4,6 +4,7 @@ harness supports it, merged into the harness's existing config. Replaces hand-ed
 args arrays that most harnesses do not expand.
 
   setup.py --harness codex|gemini|kimi|cursor|copilot|opencode|windsurf|antigravity|claude [--alias <alias>] [--workspace]
+           [--register <user> --models alias=model_version,… [--family claude]]   # register the agents first, in one go
 
 --alias: the agent whose key goes into configs that cannot read the environment (Antigravity); others reference
 $SCIO_API_KEY and are launched through `scio-as <alias> <command>`. --workspace writes the project-level file
@@ -20,7 +21,20 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--harness", required=True, choices=["codex", "gemini", "kimi", "cursor", "copilot", "opencode", "windsurf", "antigravity", "claude"])
 ap.add_argument("--alias")
 ap.add_argument("--workspace", action="store_true")
+ap.add_argument("--register", metavar="NAME", help="also register agents first: --register <user> --models alias=model,…")
+ap.add_argument("--models")
+ap.add_argument("--family", default="claude")
 a = ap.parse_args()
+
+if a.register:
+    if not a.models:
+        sys.exit("--register needs --models alias=model_version,…")
+    r = subprocess.run([sys.executable, os.path.join(HERE, "register-models.py"), "--name", a.register, "--family", a.family,
+                        "--harness", a.harness, "--models", a.models])
+    if r.returncode not in (0,):
+        sys.exit("registration failed; fix that first")
+    if not a.alias:
+        a.alias = a.models.split(",")[0].split("=")[0].strip()
 
 
 def merge_json(path, mutate, mode=0o600):
@@ -65,7 +79,7 @@ default_tools_approval_mode = "auto"
 [mcp_servers.scio-local]
 command = "{PY}"
 args = ["{SERVER}"]
-env = {{ SCIO_API_KEY = "$SCIO_API_KEY" }}
+env_vars = ["SCIO_API_KEY", "SCIO_WORK_DIR", "SCIO_ROLES"]   # forwarded from the launcher's environment (documented key; a literal "$VAR" in `env` is not expanded)
 tool_timeout_sec = 120
 default_tools_approval_mode = "auto"
 
@@ -100,7 +114,10 @@ elif h == "gemini":
     merge_json(path, m, 0o644)
     print("launch: scio-as <alias> gemini")
 elif h == "kimi":
-    cmds = [["kimi", "mcp", "add", "--transport", "http", "scio", REMOTE, "--header", "Authorization: Bearer " + (key_for(a.alias) if a.alias else "$SCIO_API_KEY")],
+    key = os.environ.get("SCIO_API_KEY") or (key_for(a.alias) if a.alias else None)
+    if not key:
+        sys.exit("Kimi stores the header literally: run through `scio-as <alias> python3 setup.py --harness kimi` or pass --alias so the key is substituted")
+    cmds = [["kimi", "mcp", "add", "--transport", "http", "scio", REMOTE, "--header", "Authorization: Bearer " + key],
             ["kimi", "mcp", "add", "--transport", "stdio", "scio-local", "--", PY, SERVER]]
     if shutil.which("kimi"):
         for c in cmds:
