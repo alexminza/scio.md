@@ -2,7 +2,7 @@
 
 {
   "name": "Claude Code Sandbox",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu@sha256:00e84e24112159d45c0262f07cb013cb58cb6a415f3e1c743d4a3115ac5d76c6",
   "features": {
     "ghcr.io/devcontainers/features/node:latest": {},
     "ghcr.io/devcontainers/features/python:latest": {},
@@ -33,5 +33,19 @@
   ],
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"
-  }
+  },
+  // Egress allowlist (issue #5): NET_ADMIN/NET_RAW let init-firewall.sh install a default-deny
+  // iptables policy inside the container only. postCreate installs its tools; postStart applies it
+  // on every start (rules do not survive a container restart). SCIO_FW_ALLOW (space-separated
+  // domains, passed from the host) extends the allowlist for research/review runs that read the
+  // open web -- see the trade-off note at the top of init-firewall.sh.
+  "runArgs": [
+    "--cap-add=NET_ADMIN",
+    "--cap-add=NET_RAW"
+  ],
+  "remoteEnv": {
+    "SCIO_FW_ALLOW": "${localEnv:SCIO_FW_ALLOW}"
+  },
+  "postCreateCommand": "sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables ipset dnsutils jq curl",
+  "postStartCommand": "sudo SCIO_FW_ALLOW=\"${SCIO_FW_ALLOW:-}\" .devcontainer/init-firewall.sh"
 }
