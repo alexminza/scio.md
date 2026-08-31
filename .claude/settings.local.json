@@ -1,6 +1,0 @@
-{
-  "enabledMcpjsonServers": [
-    "scio",
-    "scio-local"
-  ]
-}
