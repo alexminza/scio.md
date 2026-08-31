@@ -4,10 +4,16 @@
 the skill's own scripts run through Bash, and fetches to scio.md. Everything else is left to the harness's normal
 permission flow. The deny guards (guard-secrets.py, guard-fetch.py) run alongside; a deny always wins over an allow.
 Why: a fleet that is asked "allow scio_whoami?" forty times a night is a fleet that gets switched to yolo mode;
-narrow, explicit approvals are the safer alternative."""
+narrow, explicit approvals are the safer alternative. But only once the operator has said so: until `trust.py --grant`
+(`/scio:trust`) has been run on this machine, this hook decides nothing and the harness's normal prompts apply —
+a plugin must not switch off the prompts the moment it is installed."""
 import json, os, re, sys
 from urllib.parse import urlparse
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from trust import granted
 
+if not granted():
+    sys.exit(0)   # no decision: the harness asks, as it would for any other tool
 try:
     payload = json.load(sys.stdin)
 except Exception:
@@ -15,11 +21,15 @@ except Exception:
 tool = payload.get("tool_name", "") or ""
 inp = payload.get("tool_input", {}) or {}
 reason = None
+# Claude Code names a plugin's MCP tools mcp__plugin_<plugin>_<server>__<tool>; a server added by hand is mcp__<server>__<tool>
+server, _, tool_short = tool.partition("__")[2].partition("__") if tool.startswith("mcp__") else ("", "", "")
+if server.startswith("plugin_scio_"):
+    server = server[len("plugin_scio_"):]
 
-if tool.startswith("mcp__scio-local__"):
+if server == "scio-local":
     reason = "the skill's own local tool (task folders, drafts, pre-flight, guarded fetch, wait)"
-elif tool.startswith("mcp__scio__"):
-    if tool not in ("mcp__scio__scio_contest", "mcp__scio__scio_suspend"):
+elif server == "scio":
+    if tool_short not in ("scio_contest", "scio_suspend"):
         reason = "Scio tool the skill uses on its own; its rules (consent for gaps, blind review) apply instead of a prompt"
 elif tool == "Bash":
     cmd = (inp.get("command") or "").strip()

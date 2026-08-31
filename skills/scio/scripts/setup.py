@@ -4,7 +4,12 @@ harness supports it, merged into the harness's existing config. Replaces hand-ed
 args arrays that most harnesses do not expand.
 
   setup.py --harness codex|gemini|kimi|kimi-cli|cursor|copilot|opencode|windsurf|antigravity|claude|hermes|openclaw|grok [--alias <alias>] [--workspace]
-           [--register <user> --models alias=model_version,… [--family claude]]   # register the agents first, in one go
+           [--trust] [--yes] [--register <user> --models alias=model_version,… [--family claude]]   # register the agents first, in one go
+
+It first lists every file it is about to write or merge and asks (interactive) or requires --yes (an agent runs it only
+after showing that list to the user). By default the harness's own permission prompts stay on for every Scio tool call;
+--trust additionally writes the harness's "approve Scio's tools without a prompt" settings (never scio_contest /
+scio_suspend) — the same one-time consent as `/scio:trust` in Claude Code, revocable by editing the file it names.
 
 Both servers are local (scio_bridge.py relays to https://scio.md/mcp; scio_local.py does the local work) and find the key
 themselves: SCIO_API_KEY when a launcher exported it, else the keys file written at registration — so a harness works
@@ -60,7 +65,22 @@ ap.add_argument("--workspace", action="store_true")
 ap.add_argument("--register", metavar="NAME", help="also register agents first: --register <user> --models alias=model,…")
 ap.add_argument("--models")
 ap.add_argument("--family", default="claude")
+ap.add_argument("--trust", action="store_true", help="also switch off the harness's prompts for Scio's own tools (the operator's explicit consent)")
+ap.add_argument("--yes", action="store_true", help="write without asking (the caller has shown the user the list of files)")
 a = ap.parse_args()
+
+
+def confirm(paths, extra=""):
+    """Say what will be written, then ask — or require --yes when there is nobody to ask."""
+    print("setup.py will write or merge:\n  " + "\n  ".join(os.path.abspath(x) for x in paths) + (("\n  " + extra) if extra else ""))
+    print("  approvals: " + ("Scio's own tools approved WITHOUT a prompt (--trust; scio_contest/scio_suspend still ask)" if a.trust
+                             else "the harness's normal prompts apply to every Scio tool call (add --trust to change that)"))
+    if a.yes:
+        return
+    if not sys.stdin.isatty():
+        sys.exit("nothing written: re-run with --yes after showing the user the list above")
+    if input("continue? [y/N] ").strip().lower() not in ("y", "yes"):
+        sys.exit("nothing written")
 
 if a.register:
     if not a.models:
@@ -119,10 +139,18 @@ def key_for(alias):
 
 h = a.harness
 if h == "claude":
-    print("Claude Code needs nothing: the plugin's .mcp.json registers both servers and its hooks approve them. Launch `claude` and say /scio:register "
+    print("Claude Code needs nothing written: the plugin's .mcp.json registers both servers. Launch `claude` and say /scio:register "
           "(or /scio:status once registered); `scio-as <alias> claude` only to pick one of several agents.")
+    if a.trust:
+        confirm([os.environ.get("SCIO_TRUST_FILE") or os.path.expanduser(os.path.join("~", ".config", "scio", "auto-approve"))])
+        subprocess.run([sys.executable, os.path.join(HERE, "trust.py"), "--grant"], check=False)
+    else:
+        print("Every Scio tool call goes through Claude Code's normal prompt until the user grants /scio:trust (or setup.py --harness claude --trust).")
 elif h == "codex":
     path = os.path.expanduser("~/.codex/config.toml")
+    prof = os.path.expanduser("~/.codex/scio.config.toml")
+    confirm([path, prof])
+    approve = 'default_tools_approval_mode = "approve"\n' if a.trust else ""   # without --trust Codex asks per tool, as for any server
     block = f'''
 # --- Scio (written by setup.py) ---
 [mcp_servers.scio]
@@ -130,15 +158,13 @@ command = "{PY}"
 args = ["{BRIDGE}", "--harness", "codex"]
 env_vars = ["SCIO_API_KEY", "SCIO_AGENT", "SCIO_KEYS_FILE", "SCIO_ROLES"]   # forwarded from the launcher's environment when set (Codex starts servers with a minimal environment); the bridge otherwise reads the keys file
 tool_timeout_sec = 120
-default_tools_approval_mode = "approve"
-
+{approve}
 [mcp_servers.scio-local]
 command = "{PY}"
 args = ["{SERVER}"]
 env_vars = ["SCIO_API_KEY", "SCIO_AGENT", "SCIO_KEYS_FILE", "SCIO_WORK_DIR", "SCIO_ROLES"]   # forwarded from the launcher's environment (documented key; a literal "$VAR" in `env` is not expanded)
 tool_timeout_sec = 120
-default_tools_approval_mode = "approve"
-
+{approve}
 [mcp_servers.scio.tools.scio_contest]
 approval_mode = "prompt"
 
@@ -153,7 +179,6 @@ approval_mode = "prompt"
     cur = strip_toml_tables(cur, ["mcp_servers.scio", "mcp_servers.scio-local", "profiles.scio"])  # older entries, whoever wrote them
     open(path, "w").write(cur.rstrip("\n") + "\n" + block)
     # Codex ≥ 0.150 keeps each profile in its own file, ~/.codex/<profile>.config.toml (a [profiles.x] table is refused).
-    prof = os.path.expanduser("~/.codex/scio.config.toml")
     open(prof, "w").write(f'''# Scio profile for Codex (written by setup.py): codex --profile scio
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
@@ -165,15 +190,17 @@ writable_roots = ["{os.path.expanduser('~/.local/share/scio')}"]   # task folder
     print(f"wrote {path} and {prof}; launch: codex --profile scio (scio-as <alias> codex --profile scio to pick one of several agents)")
 elif h == "gemini":
     path = os.path.expanduser("~/.gemini/settings.json")
+    tf = os.path.expanduser("~/.gemini/trustedFolders.json")
+    confirm([path, tf], f"(trustedFolders.json: {os.getcwd()} marked TRUST_FOLDER — Gemini enables MCP servers only in a trusted folder)")
+    trust = {"trust": True} if a.trust else {}   # `trust: true` = no per-call confirmation for that server
     def m(cfg):
         s = cfg.setdefault("mcpServers", {})
         env = {"SCIO_API_KEY": "$SCIO_API_KEY", "SCIO_AGENT": "$SCIO_AGENT"}
-        s["scio"] = {"command": PY, "args": [BRIDGE, "--harness", "gemini-cli"], "env": env, "trust": True, "excludeTools": ["scio_contest", "scio_suspend"], "timeout": 120000}  # contest spends points, suspend is for arbiters: neither runs unattended
-        s["scio-local"] = {"command": PY, "args": [SERVER], "env": env, "trust": True, "timeout": 120000}
+        s["scio"] = {"command": PY, "args": [BRIDGE, "--harness", "gemini-cli"], "env": env, **trust, "excludeTools": ["scio_contest", "scio_suspend"], "timeout": 120000}  # contest spends points, suspend is for arbiters: neither runs unattended
+        s["scio-local"] = {"command": PY, "args": [SERVER], "env": env, **trust, "timeout": 120000}
         cfg.setdefault("general", {}).setdefault("defaultApprovalMode", "auto_edit")
     merge_json(path, m, 0o644)
     # Gemini CLI disables every MCP server in an untrusted folder: record the trust for this workspace once.
-    tf = os.path.expanduser("~/.gemini/trustedFolders.json")
     def t(cfg):
         cfg[os.getcwd()] = "TRUST_FOLDER"
     merge_json(tf, t, 0o644)
@@ -181,12 +208,15 @@ elif h == "gemini":
 elif h == "kimi":
     # Kimi Code (moonshotai/kimi-code): ~/.kimi-code/mcp.json + [[permission.rules]] in ~/.kimi-code/config.toml
     home = os.environ.get("KIMI_CODE_HOME") or os.path.expanduser("~/.kimi-code")
+    confirm([os.path.join(home, "mcp.json")] + ([os.path.join(home, "config.toml")] if a.trust else []))
     def m(cfg):
         s = cfg.setdefault("mcpServers", {})
         s["scio"] = {"command": PY, "args": [BRIDGE, "--harness", "kimi-code"]}   # both inherit SCIO_API_KEY/SCIO_AGENT from the launcher's environment, else read the keys file
         s["scio-local"] = {"command": PY, "args": [SERVER]}
     merge_json(os.path.join(home, "mcp.json"), m, 0o600)
     cpath = os.path.join(home, "config.toml")
+    if not a.trust:
+        print(f"wrote {home}/mcp.json; Kimi asks per tool (allow rules in {cpath} only with --trust). Launch: kimi"); sys.exit(0)
     cur = open(cpath).read() if os.path.exists(cpath) else ""
     cur = re.sub(r"\n# --- Scio \(written by setup\.py\) ---.*?# --- end Scio ---\n", "", cur, flags=re.S)
     rules = "".join(f'\n[[permission.rules]]\ndecision = "{d}"\npattern = "{pat}"\nreason = "Scio: {why}"\n' for d, pat, why in (
@@ -200,6 +230,7 @@ elif h == "kimi-cli":
     # kimi-cli reads ~/.kimi/mcp.json — written directly: both servers are local and read the key themselves, so nothing
     # secret goes on argv (`kimi mcp add --header …` would show it in `ps` and shell history) or into the file
     home = os.path.expanduser("~/.kimi")
+    confirm([os.path.join(home, "mcp.json")])
     def m(cfg):
         s = cfg.setdefault("mcpServers", {})
         s["scio"] = {"command": PY, "args": [BRIDGE, "--harness", "kimi-cli"]}   # both inherit SCIO_API_KEY/SCIO_AGENT from the launcher's environment, else read the keys file
@@ -207,9 +238,12 @@ elif h == "kimi-cli":
     merge_json(os.path.join(home, "mcp.json"), m, 0o600)
     print(f"wrote {home}/mcp.json; approve each server once when it offers 'always'. Launch: kimi")
 elif h in ("cursor", "windsurf"):
+    path = os.path.join(".cursor", "mcp.json") if (h == "cursor" and a.workspace) else os.path.expanduser("~/.cursor/mcp.json" if h == "cursor" else "~/.codeium/windsurf/mcp_config.json")
+    confirm([path] + ([os.path.join(ROOT, "hooks", "hooks-cursor.json")] if h == "cursor" else []))
     if h == "cursor":
         write_hooks_absolute(os.path.join(ROOT, "hooks", "hooks-cursor.json"), '{"permission": "deny", "agent_message": "scio guard could not run"}')
-    path = os.path.join(".cursor", "mcp.json") if (h == "cursor" and a.workspace) else os.path.expanduser("~/.cursor/mcp.json" if h == "cursor" else "~/.codeium/windsurf/mcp_config.json")
+        if a.trust:
+            subprocess.run([sys.executable, os.path.join(HERE, "trust.py"), "--grant"], check=False)   # the plugin's hooks approve only after this
     def m(cfg):
         s = cfg.setdefault("mcpServers", {})
         env = {"SCIO_API_KEY": "${env:SCIO_API_KEY}", "SCIO_AGENT": "${env:SCIO_AGENT}"}
@@ -219,24 +253,29 @@ elif h in ("cursor", "windsurf"):
     print(f"launch: {h} .  (approve scio and scio-local once with 'Always allow'; scio-as <alias> {h} . to pick one of several agents)")
 elif h == "copilot":
     path = os.path.join(".vscode", "mcp.json") if a.workspace else os.path.expanduser("~/.config/Code/User/mcp.json")
+    confirm([path])
     def m(cfg):
         s = cfg.setdefault("servers", {})
         env = {"SCIO_API_KEY": "${env:SCIO_API_KEY}", "SCIO_AGENT": "${env:SCIO_AGENT}"}
         s["scio"] = {"type": "stdio", "command": PY, "args": [BRIDGE, "--harness", "copilot"], "env": env}
         s["scio-local"] = {"type": "stdio", "command": PY, "args": [SERVER], "env": env}
     merge_json(path, m, 0o644)
-    print("merge into VS Code settings.json (terminal + URL auto-approval, absolute script paths):")
-    print(render(os.path.join(ROOT, "vscode", "settings.scio.json"), lambda d: json.dumps(re.escape(d).replace("/", "\\/"))[1:-1]))
+    if a.trust:
+        print("merge into VS Code settings.json (terminal + URL auto-approval, absolute script paths):")
+        print(render(os.path.join(ROOT, "vscode", "settings.scio.json"), lambda d: json.dumps(re.escape(d).replace("/", "\\/"))[1:-1]))
+    else:
+        print("VS Code asks per tool ('Always allow' remembers your answer); --trust prints the auto-approval snippet for settings.json")
     print("launch: code .  (scio-as <alias> code . to pick one of several agents)")
 elif h == "opencode":
     path = os.path.expanduser("~/.config/opencode/opencode.json")
+    confirm([path])
     def m(cfg):
         s = cfg.setdefault("mcp", {})
         env = {"SCIO_API_KEY": "{env:SCIO_API_KEY}", "SCIO_AGENT": "{env:SCIO_AGENT}"}
         s["scio"] = {"type": "local", "command": [PY, BRIDGE, "--harness", "opencode"], "enabled": True, "environment": env}
         s["scio-local"] = {"type": "local", "command": [PY, SERVER], "enabled": True, "environment": env}
         p = cfg.setdefault("permission", {}) if isinstance(cfg.get("permission"), dict) or "permission" not in cfg else None
-        if p is not None:
+        if p is not None and a.trust:   # without --trust OpenCode's own permission defaults apply
             p.update({"scio_*": "allow", "scio-local_*": "allow", "scio_scio_contest": "ask", "scio_scio_suspend": "ask"})
             bash = p.get("bash")
             if not isinstance(bash, dict):
@@ -256,12 +295,14 @@ elif h == "hermes":
     # Hermes Agent: ~/.hermes/config.yaml → mcp_servers; ${VAR} resolves from ~/.hermes/.env or the process env;
     # trust defaults to `full` (no per-call approval). Skills live in ~/.hermes/skills — install ours from skills.sh.
     home = os.path.expanduser("~/.hermes")
-    os.makedirs(home, exist_ok=True)
     cpath = os.path.join(home, "config.yaml")
+    confirm([cpath] + ([os.path.join(home, ".env")] if a.alias else []))
+    os.makedirs(home, exist_ok=True)
+    trust = {"trust": "full"} if a.trust else {}   # Hermes' own default applies otherwise (it is `full` in current releases — set trust: ask in config.yaml to change it)
     servers = {
-        "scio": {"command": PY, "args": [BRIDGE, "--harness", "hermes"], "env": {"SCIO_API_KEY": "${SCIO_API_KEY}"}, "timeout": 120, "trust": "full",
+        "scio": {"command": PY, "args": [BRIDGE, "--harness", "hermes"], "env": {"SCIO_API_KEY": "${SCIO_API_KEY}"}, "timeout": 120, **trust,
                  "exclude_tools": ["scio_contest", "scio_suspend"]},   # contest spends points, suspend is for arbiters: not under full trust
-        "scio-local": {"command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": "${SCIO_API_KEY}"}, "timeout": 120, "trust": "full"},
+        "scio-local": {"command": PY, "args": [SERVER], "env": {"SCIO_API_KEY": "${SCIO_API_KEY}"}, "timeout": 120, **trust},
     }
     try:
         import yaml
@@ -298,8 +339,9 @@ elif h == "openclaw":
     from scio_common import env_key
     key = env_key() or (key_for(a.alias) if a.alias else None)   # never an unexpanded placeholder into .env
     home = os.path.expanduser("~/.openclaw")
-    os.makedirs(home, mode=0o700, exist_ok=True)
     envp = os.path.join(home, ".env")
+    confirm(([envp] if key else []), "openclaw mcp set scio / scio-local (saved MCP definitions; OpenClaw agents run without per-call approvals by design)")
+    os.makedirs(home, mode=0o700, exist_ok=True)
     env = {}
     if key:
         lines = [l for l in (open(envp).read().splitlines() if os.path.exists(envp) else []) if not l.startswith("SCIO_API_KEY=")]
@@ -326,12 +368,16 @@ elif h == "grok":
     # Grok Build (xAI): Claude-compatible plugins — installs this repository as a plugin (skills, .mcp.json with
     # ${CLAUDE_PLUGIN_ROOT}/${SCIO_API_KEY} expanded, hooks) — plus native [permission] rules so Scio's tools never ask.
     home = os.environ.get("GROK_HOME") or os.path.expanduser("~/.grok")
-    os.makedirs(home, exist_ok=True)
-    if shutil.which("grok"):
-        subprocess.run(["grok", "plugin", "install", "evisoft/scio.md", "--trust"], check=False)
-    else:
-        print("grok not on PATH; run: grok plugin install evisoft/scio.md --trust")
     cpath = os.path.join(home, "config.toml")
+    confirm([cpath] if a.trust else [], "grok plugin install evisoft/scio.md" + (" --trust" if a.trust else ""))
+    os.makedirs(home, exist_ok=True)
+    install = ["grok", "plugin", "install", "evisoft/scio.md"] + (["--trust"] if a.trust else [])
+    if shutil.which("grok"):
+        subprocess.run(install, check=False)
+    else:
+        print("grok not on PATH; run: " + " ".join(install))
+    if not a.trust:
+        print("Grok itself refuses to install any plugin without its --trust consent (above); with setup.py --trust it is passed on and Scio's allow rules go to " + cpath); sys.exit(0)
     cur = open(cpath).read() if os.path.exists(cpath) else ""
     cur = re.sub(r"\n# --- Scio \(written by setup\.py\) ---.*?# --- end Scio ---\n", "", cur, flags=re.S)
     block = '''
@@ -365,6 +411,7 @@ elif h == "antigravity":
     if a.alias:
         key_for(a.alias)   # fail early when the alias is unknown
     path = os.path.join(".agents", "mcp_config.json") if a.workspace else os.path.expanduser("~/.gemini/config/mcp_config.json")
+    confirm([path, os.path.join(ROOT, "hooks.json")])
     def m(cfg):
         s = cfg.setdefault("mcpServers", {})
         env = {"SCIO_AGENT": a.alias} if a.alias else {}
@@ -374,5 +421,11 @@ elif h == "antigravity":
         s["scio-local"] = {"command": PY, "args": [SERVER], "env": env}
     merge_json(path, m, 0o600)
     write_hooks_absolute(os.path.join(ROOT, "hooks.json"), '{"decision": "deny", "reason": "scio guard could not run"}')
-    print("add these lists (antigravity/permissions.md with absolute script paths); the plugin's hooks.json runs the guards:")
-    print(render(os.path.join(ROOT, "antigravity", "permissions.md"), re.escape).split("```")[1].strip())
+    lists = render(os.path.join(ROOT, "antigravity", "permissions.md"), re.escape).split("```")[1].strip()
+    if a.trust:
+        subprocess.run([sys.executable, os.path.join(HERE, "trust.py"), "--grant"], check=False)   # the plugin's hooks approve only after this
+        print("add these lists (antigravity/permissions.md with absolute script paths); the plugin's hooks.json runs the guards:")
+        print(lists)
+    else:
+        print("Antigravity asks per tool; the plugin's hooks.json only runs the deny guards until --trust. Deny list to add regardless:")
+        print(lists.split("# Deny list")[1].strip() if "# Deny list" in lists else lists)

@@ -7,7 +7,10 @@ import glob, json, os, re, subprocess, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIX = os.path.join(HERE, "..", "assets", "redteam")
 PY = sys.executable
-env = dict(os.environ, SCIO_API_KEY="REDTEAM_KEY_0123456789", SCIO_KEYS_FILE="/nonexistent")
+import tempfile as _tf
+_trust = os.path.join(_tf.mkdtemp(), "auto-approve"); open(_trust, "w").write("granted (test)\n")
+env = dict(os.environ, SCIO_API_KEY="REDTEAM_KEY_0123456789", SCIO_KEYS_FILE="/nonexistent", SCIO_TRUST_FILE=_trust)
+env.pop("SCIO_AUTO_APPROVE", None)
 failures = []
 
 
@@ -71,6 +74,17 @@ def approve(cmd, extra_env=None):
 
 
 print("\nauto-approve.py")
+expect(approve(f"python3 {S}/workdir.py write my-article", {"SCIO_TRUST_FILE": "/nonexistent"}) is None, "0: nothing is auto-approved until trust.py --grant has been run")
+expect(hook("auto-approve.py", "mcp__scio__scio_whoami", {}, {"SCIO_TRUST_FILE": "/nonexistent"}) is None, "0: not even Scio's own MCP tools")
+expect(hook("auto-approve.py", "mcp__scio__scio_whoami", {}, {"SCIO_TRUST_FILE": "/nonexistent", "SCIO_AUTO_APPROVE": "1"}) == "allow", "0: SCIO_AUTO_APPROVE=1 grants it for one launch")
+expect(hook("auto-approve.py", "mcp__scio__scio_whoami", {}) == "allow", "0: with the grant, Scio's tools are approved")
+expect(approve(f"python3 {S}/trust.py --grant") is None, "0: trust.py itself is never auto-approved")
+expect(hook("auto-approve.py", "mcp__plugin_scio_scio__scio_whoami", {}) == "allow", "0: the plugin-prefixed tool name (mcp__plugin_scio_scio__*) is recognised")
+expect(hook("auto-approve.py", "mcp__plugin_scio_scio-local__workdir", {"kind": "write", "ref": "x"}) == "allow", "0: … and for scio-local")
+expect(hook("auto-approve.py", "mcp__plugin_scio_scio__scio_contest", {}) is None, "0: scio_contest under the plugin prefix still asks")
+expect(hook("auto-approve.py", "mcp__plugin_evil_scio__scio_whoami", {}) is None, "0: another plugin's server called scio is not ours")
+import re as _re
+expect(_re.fullmatch(json.load(open(os.path.join(ROOT, "hooks", "hooks.json")))["hooks"]["PreToolUse"][2]["matcher"], "mcp__plugin_scio_scio__scio_propose_edit"), "0: the check-claims hook matcher covers the plugin-prefixed name")
 expect(approve(f"{S}/scio-as opus --print-env") is None, "1: scio-as --print-env is not auto-approved (it prints the key)")
 expect(approve(f"{S}/scio-as opus codex --profile scio") == "allow", "1: scio-as <alias> <harness> still is")
 expect(approve(f"{S}/scio-as --list") == "allow", "1: scio-as --list still is")

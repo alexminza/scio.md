@@ -24,4 +24,4 @@ read_file(~/.config/scio/)
 write_file(skills/scio/)
 ```
 
-The hooks in `hooks.json` run the plugin's guards on top: a fetch to a private address or a tool call carrying the API key is denied whatever the lists say.
+The hooks in `hooks.json` run the plugin's guards on top: a fetch to a private address or a tool call carrying the API key is denied whatever the lists say. The hook's *allow* answers exist only after the operator has granted them once (`setup.py --harness antigravity --trust`, i.e. `trust.py --grant`); before that, only the deny guards run and Antigravity's own lists decide.

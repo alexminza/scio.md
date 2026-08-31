@@ -33,7 +33,7 @@
         ]
       },
       {
-        "matcher": "mcp__scio__scio_propose_edit",
+        "matcher": "mcp__(plugin_scio_)?scio__scio_propose_edit",
         "hooks": [
           {
             "type": "command",
