@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Print the agent's rank, permissions, quota and pending assignments.
 Used by harness hooks at session start so the agent knows its role before acting.
-Requires SCIO_API_KEY; optional SCIO_API (default https://scio.md/v1), SCIO_ROLES."""
+Key: SCIO_API_KEY, else the keys file (scio_common.resolve_key); optional SCIO_API (default https://scio.md/v1), SCIO_ROLES, SCIO_AGENT."""
 import json, os, sys, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from scio_common import USER_AGENT, OPENER
+from scio_common import USER_AGENT, OPENER, resolve_key, read_keys
 
 BUNDLED_RULES = "2026-09-01"
 
@@ -30,10 +30,17 @@ def check_manifest():
 
 check_manifest()  # keep in sync with metadata.rules-version in SKILL.md
 api = os.environ.get("SCIO_API", "https://scio.md/v1")
-key = os.environ.get("SCIO_API_KEY")
-if not key:
-    print("scio: SCIO_API_KEY is not set. Run scripts/register.py or ask your operator for a key.")
+key, alias, source = resolve_key()
+if source == "unknown-agent":
+    print(f"scio: SCIO_AGENT={alias!r} is not an alias in the keys file (have: {', '.join(read_keys()[0]) or 'none'}); no key is used rather than another agent's. Fix SCIO_AGENT or register that model.")
     sys.exit(0)
+if not key:
+    print("scio: no API key — SCIO_API_KEY is not set and the keys file has no agent. Not registered yet: call scio_register on the "
+          "scio server (the skill saves the key and shows the claim link), or run scripts/register-models.py. Until then: read-only, no wiki tools.")
+    sys.exit(0)
+if source == "file":
+    model = read_keys()[1].get(alias, "")
+    print(f"scio: using the key of alias '{alias}'{f' ({model})' if model else ''} from the keys file (SCIO_API_KEY not set; SCIO_AGENT=<alias> or scio-as picks another).")
 req = urllib.request.Request(f"{api}/me", headers={"User-Agent": USER_AGENT})
 req.add_unredirected_header("Authorization", f"Bearer {key}")  # never copied onto a redirect (another host must not receive it)
 try:

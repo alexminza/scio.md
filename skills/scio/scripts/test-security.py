@@ -211,5 +211,117 @@ try:
 except ImportError:
     print("  (cryptography not installed: verify-rules.py --out root check not exercised)")
 
+
+# --- v0.4.0: the bridge (scio_bridge.py) — install and go, and the key never enters the model's context ------------
+print("scio_bridge.py")
+import tempfile
+BRIDGE = os.path.join(os.path.dirname(HERE), "server", "scio_bridge.py")
+mcp_seen, mcp_mode = [], {"status": 200}
+class M(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        req = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0)) or b"{}"))
+        mcp_seen.append((req.get("method"), (req.get("params") or {}).get("name"), self.headers.get("Authorization"), (req.get("params") or {}).get("arguments")))
+        if mcp_mode["status"] != 200:
+            self.send_response(mcp_mode["status"]); self.send_header("Retry-After", "7"); self.send_header("Content-Type", "application/json"); self.end_headers()
+            self.wfile.write(b'{"error": "unauthorized"}'); return
+        if mcp_mode.get("hold"):
+            import time as _t; _t.sleep(mcp_mode["hold"])
+        if req.get("method") == "tools/list":
+            tools = [{"name": "scio_register", "inputSchema": {"type": "object", "properties": {}}, "outputSchema": {"type": "object", "properties": {"agent_id": {"type": "string"}, "api_key": {"type": "string"}, "claim_url": {"type": "string"}}, "required": ["agent_id", "api_key", "claim_url"], "additionalProperties": False}}, {"name": "scio_get_rules"}]
+            if self.headers.get("Authorization"):
+                tools.append({"name": "scio_whoami"})
+            res = {"tools": tools}
+        elif req.get("method") == "tools/call" and (req.get("params") or {}).get("name") == "scio_register":
+            data = {"agent_id": "ag_0123456789abcdef", "api_key": "sk_live_BRIDGE_TEST_KEY_0123456789", "claim_url": "https://scio.md/claim/x", "rank": 0}
+            res = {"content": [{"type": "text", "text": json.dumps(data)}], "structuredContent": data, "isError": False}
+        elif req.get("method") == "tools/call":
+            res = {"content": [{"type": "text", "text": "{}"}], "isError": False}
+        else:
+            res = {}
+        body = ("event: message\ndata: " + json.dumps({"jsonrpc": "2.0", "id": req.get("id"), "result": res}) + "\n\n").encode()
+        self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.end_headers(); self.wfile.write(body)
+    def log_message(self, *a): pass
+mcp = http.server.ThreadingHTTPServer(("127.0.0.1", 0), M)   # the bridge calls in parallel
+threading.Thread(target=mcp.serve_forever, daemon=True).start()
+def bridge(msgs, **extra):
+    benv = {k: v for k, v in aenv.items() if k not in ("SCIO_API_KEY", "SCIO_KEYS_FILE")}
+    benv["SCIO_MCP"] = f"http://127.0.0.1:{mcp.server_port}/mcp"
+    benv.update(extra)
+    r = subprocess.run([PY, BRIDGE, "--harness", "test"], input="".join(json.dumps(m) + "\n" for m in msgs), capture_output=True, text=True, env=benv)
+    return [json.loads(l) for l in r.stdout.splitlines() if l.strip()], r
+with tempfile.TemporaryDirectory() as d:
+    kf = os.path.join(d, "keys")
+    del mcp_seen[:]
+    outp, r = bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}], SCIO_KEYS_FILE=kf, SCIO_API_KEY="${SCIO_API_KEY}")
+    expect(mcp_seen and mcp_seen[0][2] is None, "B1: an unexpanded ${SCIO_API_KEY} is no key: no Authorization header is sent")
+    reg = [t for t in outp[0]["result"]["tools"] if t["name"] == "scio_register"][0]
+    expect("alias" in reg["inputSchema"]["properties"], "B1: scio_register gains the local `alias` field")
+    expect("api_key" not in reg["outputSchema"].get("required", []) and "api_key" not in reg["outputSchema"]["properties"] and "alias" in reg["outputSchema"]["properties"] and not reg["outputSchema"].get("additionalProperties") is False, "B1: the outputSchema no longer requires the api_key the bridge removes")
+    del mcp_seen[:]
+    outp, r = bridge([
+        {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "scio_register", "arguments": {"display_name": "t", "model_family": "claude", "model_version": "claude-fable-5", "alias": "fable"}}},
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "scio_whoami", "arguments": {}}},
+        {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "scio_register", "arguments": {"display_name": "t", "model_family": "claude", "model_version": "claude-fable-5"}}},
+    ], SCIO_KEYS_FILE=kf)
+    expect("sk_live_BRIDGE_TEST_KEY" not in r.stdout + r.stderr, "B2: the api_key never reaches stdout (the model)")
+    expect(mcp_seen[0][3] is not None and "alias" not in mcp_seen[0][3], "B2: `alias` is stripped before the call is forwarded")
+    expect(mcp_seen[0][2] is None, "B2: scio_register is sent without any bearer (auth: none; a stale key cannot break it)")
+    expect("# default fable" in open(kf).read(), "B2: the first registration becomes the default agent")
+    expect(os.path.exists(kf) and oct(os.stat(kf).st_mode & 0o777) == "0o600" and "fable=sk_live_BRIDGE_TEST_KEY_0123456789" in open(kf).read() and "# model fable claude-fable-5" in open(kf).read(), "B2: the key is saved under the alias, mode 600, with its model")
+    expect(any(m.get("method") == "notifications/tools/list_changed" for m in outp), "B2: tools/list_changed is announced after registration")
+    first = [m for m in outp if m.get("id") == 1][0]["result"]
+    expect(first["structuredContent"].get("alias") == "fable" and "claim_url" in first["structuredContent"] and "api_key" not in json.dumps(first), "B2: the answer carries alias and claim_url, not the key")
+    expect(mcp_seen[1][1] == "scio_whoami" and mcp_seen[1][2] == "Bearer sk_live_BRIDGE_TEST_KEY_0123456789", "B2: the next call in the same session carries the new key")
+    third = [m for m in outp if m.get("id") == 3][0]["result"]
+    expect(third.get("isError") and len([s for s in mcp_seen if s[1] == "scio_register"]) == 1, "B3: registering the same model again is refused locally, without a server call")
+    del mcp_seen[:]
+    bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}], SCIO_KEYS_FILE=kf)
+    expect(mcp_seen[0][2] == "Bearer sk_live_BRIDGE_TEST_KEY_0123456789", "B4: a new session reads the saved key from the keys file")
+    del mcp_seen[:]
+    bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}], SCIO_KEYS_FILE=kf, SCIO_API_KEY="ENV_KEY_WINS_0123456789")
+    expect(mcp_seen[0][2] == "Bearer ENV_KEY_WINS_0123456789", "B5: SCIO_API_KEY (scio-as) wins over the keys file")
+    open(kf, "a").write("second=sk_live_SECOND_KEY_0123456789\n")
+    del mcp_seen[:]
+    bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}], SCIO_KEYS_FILE=kf, SCIO_AGENT="second")
+    expect(mcp_seen[0][2] == "Bearer sk_live_SECOND_KEY_0123456789", "B5: SCIO_AGENT picks an alias from the keys file")
+    del mcp_seen[:]
+    outp, r = bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}], SCIO_KEYS_FILE=kf, SCIO_AGENT="typo")
+    expect(mcp_seen[0][2] is None, "B5: an unknown SCIO_AGENT uses no key at all (never another agent's)")
+    outp, r = bridge([{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}], SCIO_KEYS_FILE=kf, SCIO_AGENT="typo")
+    expect("typo" in outp[0]["result"]["instructions"], "B5: the server instructions name the unknown SCIO_AGENT alias")
+    wo = subprocess.run([PY, os.path.join(HERE, "whoami.py")], capture_output=True, text=True, env=dict(aenv, SCIO_KEYS_FILE=kf, SCIO_API_KEY="", SCIO_AGENT="typo")).stdout
+    expect("typo" in wo and "not an alias" in wo, "B5: whoami.py names the unknown SCIO_AGENT")
+    # a hand-edited file without a final newline, and a pre-0.4 file without model lines
+    kf2 = os.path.join(d, "keys2"); open(kf2, "w").write("old=sk_live_OLD_KEY_0123456789")
+    del mcp_seen[:]
+    outp, r = bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "scio_register", "arguments": {"display_name": "t", "model_family": "claude", "model_version": "claude-fable-5"}}}], SCIO_KEYS_FILE=kf2)
+    expect(outp[0]["result"].get("isError") and not mcp_seen, "B9: with pre-0.4 keys of unrecorded model, registering without an explicit alias is refused locally")
+    outp, r = bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "scio_register", "arguments": {"display_name": "t", "model_family": "claude", "model_version": "claude-fable-5", "alias": "fable"}}}], SCIO_KEYS_FILE=kf2)
+    lines = open(kf2).read().splitlines()
+    expect(lines[0] == "old=sk_live_OLD_KEY_0123456789" and "fable=sk_live_BRIDGE_TEST_KEY_0123456789" in lines and "# default" not in open(kf2).read(), "B9: appending to a file without a final newline keeps both keys intact; the default is not flipped")
+    mcp_mode["status"] = 429
+    outp, r = bridge([{"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "scio_search", "arguments": {}}}], SCIO_KEYS_FILE=kf)
+    mcp_mode["status"] = 200
+    expect(outp and outp[0].get("error", {}).get("data", {}).get("retry_after") == "7", "B6: an HTTP 429 becomes a JSON-RPC error carrying Retry-After")
+    expect(outp and isinstance(outp[0].get("error"), dict) and "code" in outp[0]["error"], "B6: a REST-style {\"error\": \"…\"} body is not relayed as a JSON-RPC error object")
+    import time as _time
+    mcp_mode["hold"] = 1.0
+    t0 = _time.time()
+    outp, r = bridge([{"jsonrpc": "2.0", "id": i, "method": "tools/call", "params": {"name": "scio_search", "arguments": {"q": "ș ț 中文"}}} for i in (1, 2, 3)], SCIO_KEYS_FILE=kf)
+    mcp_mode["hold"] = 0
+    expect(sorted(m.get("id") for m in outp) == [1, 2, 3] and _time.time() - t0 < 2.5, "B10: three parallel calls take the max latency, not the sum")
+    expect(any(a and a.get("q") == "ș ț 中文" for _, _, _, a in mcp_seen[-3:]), "B10: UTF-8 arguments reach the server intact")
+    outp, r = bridge([{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}}}], SCIO_KEYS_FILE=kf, SCIO_MCP="http://127.0.0.1:9/mcp")
+    expect(outp and outp[0]["result"]["capabilities"]["tools"].get("listChanged") is True, "B11: initialize is answered locally, even with the wiki unreachable")
+    # the key from the keys file is a secret for guard-secrets.py too, even when the environment has none
+    out_g = subprocess.run([PY, os.path.join(HERE, "guard-secrets.py")], input=json.dumps({"tool_name": "Bash", "tool_input": {"command": "echo sk_live_BRIDGE_TEST_KEY_0123456789"}}), capture_output=True, text=True, env=dict(aenv, SCIO_KEYS_FILE=kf, SCIO_API_KEY="")).stdout
+    expect('"deny"' in out_g, "B7: guard-secrets denies a bridge-saved key in a tool argument")
+    out_g = subprocess.run([PY, os.path.join(HERE, "guard-secrets.py")], input=json.dumps({"tool_name": "Edit", "tool_input": {"new_string": "Bearer ${SCIO_API_KEY}"}}), capture_output=True, text=True, env=dict(aenv, SCIO_KEYS_FILE="/nonexistent", SCIO_API_KEY="${SCIO_API_KEY}")).stdout
+    expect('"deny"' not in out_g, "B7: an unexpanded ${SCIO_API_KEY} in the environment is not treated as a secret")
+    wd = subprocess.run([PY, os.path.join(HERE, "workdir.py"), "write", "x"], capture_output=True, text=True, env=dict(aenv, SCIO_KEYS_FILE=kf, SCIO_API_KEY="", SCIO_WORK_DIR=os.path.join(d, "w"))).stdout.strip()
+    wd2 = subprocess.run([PY, os.path.join(HERE, "workdir.py"), "write", "x"], capture_output=True, text=True, env=dict(aenv, SCIO_KEYS_FILE=kf, SCIO_API_KEY="sk_live_BRIDGE_TEST_KEY_0123456789", SCIO_WORK_DIR=os.path.join(d, "w"))).stdout.strip()
+    expect(wd and wd == wd2, "B8: the task folder is the same whether the key came from the file or the launcher")
+mcp.shutdown()
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

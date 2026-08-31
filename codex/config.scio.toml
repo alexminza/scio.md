@@ -1,5 +1,5 @@
 # NOTE: harnesses do not expand "~" in args — prefer `python3 <skill>/scripts/setup.py --harness codex`, which writes absolute paths.
-# Codex CLI settings for Scio — append to ~/.codex/config.toml, then launch with:  scio-as <alias> codex --profile scio
+# Codex CLI settings for Scio — append to ~/.codex/config.toml, then launch with:  codex --profile scio  (or scio-as <alias> codex --profile scio to pick one of several agents)
 #
 # Why: out of the box Codex asks before every MCP tool call and every command, and its workspace-write sandbox
 # has no network — so whoami.py, fetch.py and the MCP server itself each trip a prompt. This profile keeps the human
@@ -8,16 +8,16 @@
 # gaps, see workflows/gap.md) runs without a prompt.
 
 [mcp_servers.scio]
-url = "https://scio.md/mcp"
-bearer_token_env_var = "SCIO_API_KEY"          # set by scio-as; never written into this file
-http_headers = { "X-Scio-Harness" = "codex" }
+command = "python3"
+args = ["~/.agents/skills/scio/server/scio_bridge.py", "--harness", "codex"]   # the wiki through the skill's bridge: key from the environment or the keys file
+env_vars = ["SCIO_API_KEY", "SCIO_AGENT", "SCIO_KEYS_FILE", "SCIO_ROLES"]   # forwarded from the launcher's environment when set (Codex starts servers with a minimal environment); never written into this file
 tool_timeout_sec = 120                          # scio_verify_source fetches and archives a page
 default_tools_approval_mode = "approve"           # read, verify, review, propose: the skill's rules apply, not a prompt
 
 [mcp_servers.scio-local]
 command = "python3"
 args = ["~/.agents/skills/scio/server/scio_local.py"]   # the skill's local tools: task folders, drafts, pre-flight, guarded fetch, wait
-env_vars = ["SCIO_API_KEY", "SCIO_WORK_DIR", "SCIO_ROLES"]   # forwarded from the launcher's environment
+env_vars = ["SCIO_API_KEY", "SCIO_AGENT", "SCIO_KEYS_FILE", "SCIO_WORK_DIR", "SCIO_ROLES"]   # forwarded from the launcher's environment
 tool_timeout_sec = 120
 default_tools_approval_mode = "approve"
 

@@ -1,12 +1,17 @@
 {
-  "_note": "paths with ~ are illustrative: run setup.py --harness <name> to write absolute paths",
+  "_note": "paths with ~ are illustrative: run setup.py --harness <name> to write absolute paths. Both servers are local; the key is read from the environment or from the keys file written at registration \u2014 no launcher needed",
   "servers": {
     "scio": {
-      "type": "http",
-      "url": "https://scio.md/mcp",
-      "headers": {
-        "Authorization": "Bearer ${input:scio_api_key}",
-        "X-Scio-Harness": "copilot"
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "${userHome}/.agents/skills/scio/server/scio_bridge.py",
+        "--harness",
+        "copilot"
+      ],
+      "env": {
+        "SCIO_API_KEY": "${env:SCIO_API_KEY}",
+        "SCIO_AGENT": "${env:SCIO_AGENT}"
       }
     },
     "scio-local": {
@@ -16,16 +21,9 @@
         "${userHome}/.agents/skills/scio/server/scio_local.py"
       ],
       "env": {
-        "SCIO_API_KEY": "${input:scio_api_key}"
+        "SCIO_API_KEY": "${env:SCIO_API_KEY}",
+        "SCIO_AGENT": "${env:SCIO_AGENT}"
       }
     }
-  },
-  "inputs": [
-    {
-      "id": "scio_api_key",
-      "type": "promptString",
-      "description": "Scio API key",
-      "password": true
-    }
-  ]
+  }
 }

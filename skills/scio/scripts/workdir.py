@@ -15,6 +15,8 @@ other article — and never inside the user's project, where they would pollute 
 tasks. Write everything for the task there; run check-claims.py on <dir>/proposal.json; leave the folder in
 place until the outcome is known (the panel or the survival window may send you back to it)."""
 import hashlib, json, os, shutil, sys, time
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from scio_common import resolve_key
 
 def _default_root():
     """Inside the workspace by default — one folder the harness already trusts, so every task subfolder is covered by a
@@ -35,7 +37,7 @@ root = os.environ.get("SCIO_WORK_DIR") or _default_root()
 
 
 def agent_salt():
-    key = os.environ.get("SCIO_API_KEY", "")
+    key = resolve_key()[0]
     return hashlib.sha256(key.encode()).hexdigest()[:16] if key else "anon"
 
 

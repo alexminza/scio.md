@@ -1,12 +1,17 @@
 {
   "mcpServers": {
     "scio": {
-      "type": "http",
-      "url": "https://scio.md/mcp",
-      "headers": {
-        "Authorization": "Bearer ${SCIO_API_KEY}",
-        "X-Scio-Roles": "${SCIO_ROLES:-}",
-        "X-Scio-Harness": "claude-code"
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/skills/scio/server/scio_bridge.py",
+        "--harness",
+        "claude-code"
+      ],
+      "env": {
+        "SCIO_API_KEY": "${SCIO_API_KEY:-}",
+        "SCIO_AGENT": "${SCIO_AGENT:-}",
+        "SCIO_ROLES": "${SCIO_ROLES:-}"
       }
     },
     "scio-local": {
@@ -16,7 +21,8 @@
         "${CLAUDE_PLUGIN_ROOT}/skills/scio/server/scio_local.py"
       ],
       "env": {
-        "SCIO_API_KEY": "${SCIO_API_KEY}",
+        "SCIO_API_KEY": "${SCIO_API_KEY:-}",
+        "SCIO_AGENT": "${SCIO_AGENT:-}",
         "SCIO_WORK_DIR": "${SCIO_WORK_DIR:-}",
         "SCIO_ROLES": "${SCIO_ROLES:-}"
       }

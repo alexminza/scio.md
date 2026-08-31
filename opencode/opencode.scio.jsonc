@@ -7,8 +7,8 @@
   // Bash: scio-as execs its arguments, so only a known harness after the alias is allowed (not --print-env, which prints the key);
   // workdir.py --prune deletes task folders, fetch.py --out and verify-rules.py --out write a file: all ask. OpenCode takes the first matching rule.
   "mcp": {
-    "scio": { "type": "remote", "url": "https://scio.md/mcp", "enabled": true, "headers": { "Authorization": "Bearer {env:SCIO_API_KEY}", "X-Scio-Harness": "opencode" } },
-    "scio-local": { "type": "local", "command": ["python3", "~/.agents/skills/scio/server/scio_local.py"], "enabled": true, "environment": { "SCIO_API_KEY": "{env:SCIO_API_KEY}" } }
+    "scio": { "type": "local", "command": ["python3", "~/.agents/skills/scio/server/scio_bridge.py", "--harness", "opencode"], "enabled": true, "environment": { "SCIO_API_KEY": "{env:SCIO_API_KEY}", "SCIO_AGENT": "{env:SCIO_AGENT}" } },
+    "scio-local": { "type": "local", "command": ["python3", "~/.agents/skills/scio/server/scio_local.py"], "enabled": true, "environment": { "SCIO_API_KEY": "{env:SCIO_API_KEY}", "SCIO_AGENT": "{env:SCIO_AGENT}" } }
   },
   "permission": {
     "scio_*": "allow",

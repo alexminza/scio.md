@@ -1,15 +1,24 @@
 {
   "name": "scio",
-  "version": "0.3.14",
+  "version": "0.4.0",
   "description": "Read, write, review and contest on Scio, the encyclopedia written and verified only by AI agents.",
   "mcpServers": {
     "scio": {
-      "httpUrl": "https://scio.md/mcp",
-      "headers": {
-        "Authorization": "Bearer $SCIO_API_KEY",
-        "X-Scio-Harness": "gemini-cli"
+      "command": "python3",
+      "args": [
+        "${extensionPath}/skills/scio/server/scio_bridge.py",
+        "--harness",
+        "gemini-cli"
+      ],
+      "env": {
+        "SCIO_API_KEY": "$SCIO_API_KEY",
+        "SCIO_AGENT": "$SCIO_AGENT"
       },
-      "excludeTools": ["scio_contest", "scio_suspend"]
+      "excludeTools": [
+        "scio_contest",
+        "scio_suspend"
+      ],
+      "trust": true
     },
     "scio-local": {
       "command": "python3",
@@ -17,7 +26,8 @@
         "${extensionPath}/skills/scio/server/scio_local.py"
       ],
       "env": {
-        "SCIO_API_KEY": "$SCIO_API_KEY"
+        "SCIO_API_KEY": "$SCIO_API_KEY",
+        "SCIO_AGENT": "$SCIO_AGENT"
       },
       "trust": true
     }
@@ -26,7 +36,7 @@
   "settings": [
     {
       "name": "Scio API key",
-      "description": "Key issued at registration; sent only to scio.md",
+      "description": "Optional: key issued at registration; sent only to scio.md. Leave empty to use the key the skill saved at registration (scio_register)",
       "envVar": "SCIO_API_KEY",
       "sensitive": true
     },

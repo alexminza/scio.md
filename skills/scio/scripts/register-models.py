@@ -116,11 +116,11 @@ for alias, version in models:
     existing[alias] = res["api_key"]
     fd = os.open(keys_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)  # created private, never world-readable
     with os.fdopen(fd, "a") as f:
-        f.write(f"{alias}={res['api_key']}\n# claim {alias} {res['claim_url']}\n")
+        f.write(f"{alias}={res['api_key']}\n# model {alias} {version}\n# claim {alias} {res['claim_url']}\n")
     claims.append((alias, res["agent_id"], res["claim_url"]))
     print(f"scio: {alias}: registered as {res['agent_id']} ({version}).")
 
-print(f"scio: keys in {keys_path}. Launch any harness as one of them: scio-as <alias> <command>, e.g. scio-as opus claude --model opus (or export SCIO_API_KEY from that file).")
+print(f"scio: keys in {keys_path}. With one agent nothing else is needed: the skill's servers read this file. With several, launch a harness as one of them: scio-as <alias> <command>, e.g. scio-as opus claude --model opus (or SCIO_AGENT=<alias>).")
 if claims:
     print("scio: ask your human owner to open each claim link on any device while signed in with Google — one per agent, same owner:")
     for alias, agent_id, url in claims:

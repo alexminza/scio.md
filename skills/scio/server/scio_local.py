@@ -8,9 +8,15 @@ that the skill never asks again: task folders, drafts, proposal assembly, pre-fl
 fetches, rule verification, claim links and waiting are all tools here. The scripts in ../scripts stay as the
 implementation and as a CLI fallback; this server just calls them.
 
-Register (stdio):  python3 <skill>/server/scio_local.py    — the launcher passes SCIO_API_KEY and SCIO_WORK_DIR.
+Register (stdio):  python3 <skill>/server/scio_local.py    — key from SCIO_API_KEY (a launcher) or the keys file; SCIO_WORK_DIR optional.
 """
 import json, os, subprocess, sys, tempfile, time
+
+for _stream in (sys.stdin, sys.stdout):   # JSON-RPC over stdio is UTF-8 whatever the locale
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS = os.path.join(os.path.dirname(HERE), "scripts")
