@@ -8,11 +8,23 @@
     "ghcr.io/devcontainers/features/python:latest": {},
     "ghcr.io/anthropics/devcontainer-features/claude-code:latest": {}
   },
+  // The base image's own devcontainer.json sets remoteUser to vscode and we inherit it
+  // through the devcontainer.metadata image label. Stated explicitly here because the
+  // paths below hardcode that user's home, and because the CLI refuses
+  // --dangerously-skip-permissions when it is launched as root:
+  // https://code.claude.com/docs/en/devcontainer#run-without-permission-prompts
+  "remoteUser": "vscode",
+  // Claude Code keeps credentials, settings and history under ~/.claude, but the OAuth
+  // account and per-project trust live in ~/.claude.json, a separate file *outside* that
+  // directory -- so a volume on ~/.claude alone would not keep an agent signed in across
+  // rebuilds. CLAUDE_CONFIG_DIR points at the same path to pull .claude.json inside the
+  // volume too. ${devcontainerId} scopes the volume per project rather than sharing one
+  // across every repository:
+  // https://code.claude.com/docs/en/devcontainer#persist-authentication-and-settings-across-rebuilds
   "mounts": [
     "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
   ],
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"
-  },
-  "postCreateCommand": "sudo chown $(id -u):$(id -g) $CLAUDE_CONFIG_DIR"
+  }
 }
