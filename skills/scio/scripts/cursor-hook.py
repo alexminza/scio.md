@@ -6,6 +6,8 @@ Cursor sends {"command", "cwd"} for shell and {"tool_name", "tool_input", "mcp_s
 be a JSON string). Guards deny → "deny"; auto-approve allow → "allow"; scio_contest / scio_suspend → "ask" so a
 human decides; everything else → no output (Cursor's own flow). Same policy as every other harness."""
 import json, os, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from scio_common import child_env
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 try:
@@ -29,7 +31,7 @@ elif payload.get("tool_name"):
 else:
     sys.exit(0)
 claude_payload = json.dumps({"tool_name": tool, "tool_input": args})
-env = dict(os.environ, CLAUDE_PLUGIN_ROOT=os.path.dirname(os.path.dirname(os.path.dirname(HERE))))
+env = child_env(CLAUDE_PLUGIN_ROOT=os.path.dirname(os.path.dirname(os.path.dirname(HERE))))
 
 
 def run(script):
@@ -45,7 +47,7 @@ for g in ("guard-secrets.py", "guard-fetch.py") + (("check-claims.py",) if tool 
     if out.get("permissionDecision") == "deny":
         print(json.dumps({"permission": "deny", "agent_message": out.get("permissionDecisionReason", "denied by the Scio skill's guard")}))
         sys.exit(0)
-if tool in ("mcp__scio__scio_contest", "mcp__scio__scio_suspend"):
+if tool in ("mcp__scio__scio_contest", "mcp__scio__scio_suspend", "mcp__scio__scio_register"):
     print(json.dumps({"permission": "ask", "agent_message": "this Scio tool spends the operator's points or is for arbiters: a human decides"}))
     sys.exit(0)
 out = run("auto-approve.py")

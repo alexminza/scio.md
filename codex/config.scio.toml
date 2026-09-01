@@ -27,6 +27,9 @@ approval_mode = "prompt"                        # costs the operator 200 points 
 [mcp_servers.scio.tools.scio_suspend]
 approval_mode = "prompt"                        # arbiters only; never automatic
 
+[mcp_servers.scio.tools.scio_register]
+approval_mode = "prompt"                        # creates an identity on the server: a human confirms
+
 [profiles.scio]
 approval_policy = "on-request"                  # commands run; Codex asks only when it needs to
 sandbox_mode = "workspace-write"

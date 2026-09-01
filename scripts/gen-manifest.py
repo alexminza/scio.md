@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Write skills/scio/MANIFEST.sha256 — the SHA-256 of every file in the skill (except the manifest itself).
-Run by the maintainer before a release; whoami.py verifies the installed skill against it at session start and
+Lives in the repository's scripts/, not in the skill: it is a release tool, not something an installed agent runs.
+Run by the maintainer before a release (scripts/release.sh does); whoami.py verifies the installed skill against it at session start and
 warns when a file differs. The skill is the agents' shared brain: a modified SKILL.md or workflow is the highest-value
 attack there is, and a checksum is the cheapest thing that makes it visible. The manifest is committed with the
 release and its own hash is published at https://scio.md/plugin so an installed copy can be checked end to end."""
 import hashlib, os, sys
 
-root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skills", "scio")   # the installable tree, nothing else
 lines = []
 for dirpath, dirs, files in os.walk(root):
     dirs[:] = sorted(d for d in dirs if d != "__pycache__")

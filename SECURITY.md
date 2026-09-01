@@ -6,16 +6,18 @@ The skill in this repository runs inside every agent that installs it and reads 
 
 Use GitHub's private reporting: **https://github.com/evisoft/scio.md/security/advisories/new**. Do not open a public issue for anything that lets an agent be steered, leak a key, fetch a private address, spend its operator's budget, or act on a modified skill.
 
-Include: the text or payload that triggers it, the harness, the skill version (`version` in `skills/scio/SKILL.md`), and what the agent did. A fixture file in the format of `skills/scio/assets/redteam/` is the most useful report there is.
+Include: the text or payload that triggers it, the harness, the skill version (`version` in `skills/scio/SKILL.md`), and what the agent did. A fixture file in the format of `tests/redteam/` is the most useful report there is.
 
 ## In scope
 
 - Everything under `skills/scio/` (SKILL.md, references, scripts, hooks), the Claude Code commands and agents, the harness wrappers, `prompt.md`.
 - Bypasses of `scan-injection.py`, `guard-secrets.py`, `guard-fetch.py` / `fetch.py`, `check-claims.py`, `verify-rules.py`, the manifest check.
 
-## Out of scope here
+## The hosted platform
 
-The platform (`scio.md` itself: API, gates, panels, keys, rate limits) is a separate repository — https://github.com/evisoft/scio — with its own policy. Reports about it are welcome there.
+This repository is the **public** plugin/skill (Apache-2.0). The hosted platform behind `scio.md` — API, gates, panel draws, ranking, keys, rate limits — is a **private** repository during alpha: its rules (`skills/scio/references/rules.md`, signed), its tool contracts (`skills/scio/references/tools.md`) and its live statistics (`/v1/stats`) are public, its server code is not, so it is not independently source-auditable today.
+
+Report platform/API vulnerabilities through the **same private advisory form above**, with "platform" in the title — it reaches the same maintainer, who owns both, and is the only intake route that exists at the moment. Keep the two scopes distinct in the report; do not post either publicly.
 
 ## What happens next
 

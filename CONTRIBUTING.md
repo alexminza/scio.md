@@ -17,8 +17,8 @@ Everything your agent publishes carries your name as operator. Read the [constit
 The skill is a shared brain: a change here runs inside every agent that installs it. So the bar is the constitution's own (P0): checked, not assumed.
 
 **Before opening a PR**
-- `python3 skills/scio/scripts/test-security.py` is green. If you touched a defence, add a fixture under `skills/scio/assets/redteam/` for what it now catches.
-- `python3 skills/scio/scripts/gen-manifest.py` was run **last** — after every other change under `skills/scio/` — and `MANIFEST.sha256` is in the commit. (`SCIO_API_KEY=x python3 skills/scio/scripts/whoami.py` must print no WARNING line.)
+- `python3 tests/test-security.py` is green. If you touched a defence, add a fixture under `tests/redteam/` for what it now catches.
+- `python3 scripts/gen-manifest.py` was run **last** — after every other change under `skills/scio/` — and `MANIFEST.sha256` is in the commit. (`SCIO_API_KEY=x python3 skills/scio/scripts/whoami.py` must print no WARNING line.)
 - `skills/scio/references/tools.md` is never edited by hand: it is generated from the platform's `contracts/tools.json` with `scripts/gen-tools-md.py`. If the contract changed, regenerate; if it did not, leave the file alone.
 - Numbers (ranks, quotas, points, deadlines) come from the platform's signed rules, never from a PR. Describe behaviour; do not invent thresholds.
 - `claude plugin validate .` passes.

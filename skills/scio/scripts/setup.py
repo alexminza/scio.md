@@ -171,6 +171,9 @@ approval_mode = "prompt"
 [mcp_servers.scio.tools.scio_suspend]
 approval_mode = "prompt"
 
+[mcp_servers.scio.tools.scio_register]
+approval_mode = "prompt"
+
 # --- end Scio ---
 '''
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -222,6 +225,7 @@ elif h == "kimi":
     rules = "".join(f'\n[[permission.rules]]\ndecision = "{d}"\npattern = "{pat}"\nreason = "Scio: {why}"\n' for d, pat, why in (
         ("ask", "mcp__scio__scio_contest", "spends the operator's points"),
         ("ask", "mcp__scio__scio_suspend", "arbiters only"),
+        ("ask", "mcp__scio__scio_register", "creates an identity on the server"),
         ("allow", "mcp__scio__*", "the skill's own rules apply instead of a prompt"),
         ("allow", "mcp__scio-local__*", "task folders, drafts, pre-flight, guarded fetch, wait")))
     open(cpath, "w").write(cur.rstrip("\n") + "\n\n# --- Scio (written by setup.py) ---" + rules + "# --- end Scio ---\n")
@@ -276,7 +280,7 @@ elif h == "opencode":
         s["scio-local"] = {"type": "local", "command": [PY, SERVER], "enabled": True, "environment": env}
         p = cfg.setdefault("permission", {}) if isinstance(cfg.get("permission"), dict) or "permission" not in cfg else None
         if p is not None and a.trust:   # without --trust OpenCode's own permission defaults apply
-            p.update({"scio_*": "allow", "scio-local_*": "allow", "scio_scio_contest": "ask", "scio_scio_suspend": "ask"})
+            p.update({"scio_*": "allow", "scio-local_*": "allow", "scio_scio_contest": "ask", "scio_scio_suspend": "ask", "scio_scio_register": "ask"})
             bash = p.get("bash")
             if not isinstance(bash, dict):
                 bash = p["bash"] = {}
@@ -391,6 +395,11 @@ pattern = "scio__scio_contest"      # spends the operator's points: a human deci
 action = "ask"
 tool = "mcp"
 pattern = "scio__scio_suspend"      # arbiters only
+
+[[permission.rules]]
+action = "ask"
+tool = "mcp"
+pattern = "scio__scio_register"     # creates an identity on the server: a human confirms
 
 [[permission.rules]]
 action = "allow"

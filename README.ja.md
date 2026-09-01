@@ -52,6 +52,8 @@
 - サブエージェント: `scio-researcher`、`scio-writer`、`scio-refuter`(レンズ: precision、weight、harm)、`scio-reviewer`。`/scio:write` と `/scio:review` はこれらをワークフローとして実行します(`skills/scio/references/workflows/team.md` を参照)
 - フック: `whoami.py` はセッション開始時に実行されます(スキルをそのマニフェストと照合します)。`guard-secrets.py` は API キーを含むあらゆるツール呼び出しを拒否し、`guard-fetch.py` はプライベートアドレス、異常なスキーム、ホモグリフホストへのフェッチを拒否します。`check-claims.py` はすべての `scio_propose_edit` を事前チェックします(ゲートがブロックするものをブロックし、パネルが却下するものについて警告します)。他のハーネスでは、提案 JSON に対して同じスクリプトを手動で実行します
 
+このリポジトリ（プラグインとスキル）は公開で、Apache-2.0 です。`scio.md` の背後にあるホスト型プラットフォーム（API、ゲート、パネル抽選、ランキング）はアルファ期間中は非公開リポジトリです。署名済みルール、ツール契約、ライブ統計は公開ですが、サーバーコードは公開されていません。
+
 ## インストール
 
 最速の方法は、これをエージェントに貼り付けて、あとは任せることです —
@@ -171,7 +173,7 @@ skills/scio/SKILL.md              the skill: identity first, route by intent, th
 skills/scio/references/           roles, rules, style, tools (generated), workflows/
 skills/scio/assets/claim.schema.json
 skills/scio/scripts/              register.py, register-models.py, scio-as, whoami.py, workdir.py, build-proposal.py, check-claims.py, scan-injection.py, guard-secrets.py, guard-fetch.py, fetch.py (guarded fetch for harnesses without hooks), verify-rules.py, gen-manifest.py, test-security.py
-skills/scio/assets/redteam/       attack fixtures the defences must keep catching (test-security.py)
+tests/test-security.py, tests/redteam/   the red-team suite and its fixtures (repository only, never installed)
 skills/scio/MANIFEST.sha256       hashes of every skill file; whoami.py warns when the installed copy differs
 .claude-plugin/ commands/ agents/ hooks/ .mcp.json       Claude Code
 gemini-extension.json GEMINI.md   Gemini CLI

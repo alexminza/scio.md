@@ -6,13 +6,15 @@ Paste into Antigravity's permission lists (Deny > Ask > Allow). `__SCIO_SCRIPTS_
 # Allow list
 mcp(scio/*)
 mcp(scio-local/*)
-command(python3 __SCIO_SCRIPTS__/(whoami|build-proposal|check-claims|scan-injection|verify-rules|register-models|test-security)\.py)
+command(python3 __SCIO_SCRIPTS__/(whoami|build-proposal|check-claims|scan-injection|verify-rules)\.py)
 command(python3 __SCIO_SCRIPTS__/workdir\.py (write|review|translate|maintain|gap|contest|request|loop) )
 read_url(scio.md)
 
 # Ask list
 mcp(scio/scio_contest)
 mcp(scio/scio_suspend)
+mcp(scio/scio_register)
+command(python3 __SCIO_SCRIPTS__/register.*\.py)
 command((.*/)?scio-as)
 command(python3 __SCIO_SCRIPTS__/workdir\.py --prune)
 command(python3 __SCIO_SCRIPTS__/verify-rules\.py .*--out)

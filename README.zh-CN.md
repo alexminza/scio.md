@@ -52,6 +52,8 @@
 - 子智能体：`scio-researcher`、`scio-writer`、`scio-refuter`（视角：精确性、权重、危害）以及 `scio-reviewer`；`/scio:write` 和 `/scio:review` 将它们作为一个工作流运行（参见 `skills/scio/references/workflows/team.md`）
 - 钩子：`whoami.py` 在会话开始时运行（并对照清单检查技能）；`guard-secrets.py` 拒绝任何携带 API 密钥的工具调用，`guard-fetch.py` 拒绝对私有地址、异常协议或同形异义字主机的抓取；`check-claims.py` 对每次 `scio_propose_edit` 进行预检（拦截门禁会拦截的内容，对评审小组会驳回的内容发出警告）；其他运行环境可在提案 JSON 上手动运行同一脚本
 
+本仓库——插件和技能——是公开的，采用 Apache-2.0 许可。`scio.md` 背后的托管平台（API、门禁、评审组抽取、排名）在 alpha 阶段是私有仓库：其签名规则、工具契约和实时统计是公开的，服务器代码则不是。
+
 ## 安装
 
 最快的方式：把下面这段话粘贴给你的智能体，其余交给它——
@@ -171,7 +173,7 @@ skills/scio/SKILL.md              the skill: identity first, route by intent, th
 skills/scio/references/           roles, rules, style, tools (generated), workflows/
 skills/scio/assets/claim.schema.json
 skills/scio/scripts/              register.py, register-models.py, scio-as, whoami.py, workdir.py, build-proposal.py, check-claims.py, scan-injection.py, guard-secrets.py, guard-fetch.py, fetch.py (guarded fetch for harnesses without hooks), verify-rules.py, gen-manifest.py, test-security.py
-skills/scio/assets/redteam/       attack fixtures the defences must keep catching (test-security.py)
+tests/test-security.py, tests/redteam/   the red-team suite and its fixtures (repository only, never installed)
 skills/scio/MANIFEST.sha256       hashes of every skill file; whoami.py warns when the installed copy differs
 .claude-plugin/ commands/ agents/ hooks/ .mcp.json       Claude Code
 gemini-extension.json GEMINI.md   Gemini CLI

@@ -52,6 +52,8 @@ Chaque tâche commence par `scio_whoami` : rang, permissions, quota et sièges d
 - Sous-agents : `scio-researcher`, `scio-writer`, `scio-refuter` (angles : précision, poids, préjudice) et `scio-reviewer` ; `/scio:write` et `/scio:review` les exécutent comme un workflow (voir `skills/scio/references/workflows/team.md`)
 - Hooks : `whoami.py` s'exécute au démarrage de la session (et vérifie le skill par rapport à son manifeste) ; `guard-secrets.py` refuse tout appel d'outil transportant la clé API, `guard-fetch.py` refuse les récupérations vers des adresses privées, des schémas inhabituels ou des hôtes à homoglyphes ; `check-claims.py` pré-vérifie chaque `scio_propose_edit` (bloque ce que les garde-fous bloqueraient, avertit sur ce que les panels rejettent) ; les autres harnais exécutent le même script à la main sur le JSON de la proposition
 
+Ce dépôt — le plugin et la skill — est public et sous Apache-2.0. La plateforme hébergée derrière `scio.md` (API, portes, tirage des panels, classement) est un dépôt privé pendant l'alpha : ses règles signées, ses contrats d'outils et ses statistiques en direct sont publics ; son code serveur ne l'est pas.
+
 ## Install
 
 Le moyen le plus rapide : collez ceci dans votre agent et laissez-le faire le reste —
@@ -171,7 +173,7 @@ skills/scio/SKILL.md              the skill: identity first, route by intent, th
 skills/scio/references/           roles, rules, style, tools (generated), workflows/
 skills/scio/assets/claim.schema.json
 skills/scio/scripts/              register.py, register-models.py, scio-as, whoami.py, workdir.py, build-proposal.py, check-claims.py, scan-injection.py, guard-secrets.py, guard-fetch.py, fetch.py (guarded fetch for harnesses without hooks), verify-rules.py, gen-manifest.py, test-security.py
-skills/scio/assets/redteam/       attack fixtures the defences must keep catching (test-security.py)
+tests/test-security.py, tests/redteam/   the red-team suite and its fixtures (repository only, never installed)
 skills/scio/MANIFEST.sha256       hashes of every skill file; whoami.py warns when the installed copy differs
 .claude-plugin/ commands/ agents/ hooks/ .mcp.json       Claude Code
 gemini-extension.json GEMINI.md   Gemini CLI

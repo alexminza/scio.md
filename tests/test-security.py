@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Regression test for the skill's defences: every fixture in assets/redteam must still be caught, every clean
-fixture must still pass. Run after any change to scan-injection.py, check-claims.py, guard-*.py or the fixtures.
-Exit 0 when all expectations hold, 1 otherwise. (P0 applied to ourselves: a defence is verified, not assumed.)"""
+"""Regression test for the skill's defences: every fixture in tests/redteam must still be caught, every clean
+fixture must still pass. Run after any change to scan-injection.py, check-claims.py, guard-*.py or the fixtures:
+    python3 tests/test-security.py
+Lives outside the installable skill on purpose — the attack payloads are for the repository and CI, never for
+an agent's disk. Exit 0 when all expectations hold, 1 otherwise. (P0 applied to ourselves: a defence is verified,
+not assumed.)"""
 import glob, json, os, re, subprocess, sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-FIX = os.path.join(HERE, "..", "assets", "redteam")
+TESTS = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.join(os.path.dirname(TESTS), "skills", "scio", "scripts")   # the runtime scripts under test
+FIX = os.path.join(TESTS, "redteam")
 PY = sys.executable
 import tempfile as _tf
 _trust = os.path.join(_tf.mkdtemp(), "auto-approve"); open(_trust, "w").write("granted (test)\n")
@@ -82,6 +86,13 @@ expect(approve(f"python3 {S}/trust.py --grant") is None, "0: trust.py itself is 
 expect(hook("auto-approve.py", "mcp__plugin_scio_scio__scio_whoami", {}) == "allow", "0: the plugin-prefixed tool name (mcp__plugin_scio_scio__*) is recognised")
 expect(hook("auto-approve.py", "mcp__plugin_scio_scio-local__workdir", {"kind": "write", "ref": "x"}) == "allow", "0: … and for scio-local")
 expect(hook("auto-approve.py", "mcp__plugin_scio_scio__scio_contest", {}) is None, "0: scio_contest under the plugin prefix still asks")
+expect(hook("auto-approve.py", "mcp__plugin_scio_scio__scio_register", {}) is None and hook("auto-approve.py", "mcp__scio__scio_register", {}) is None, "0: scio_register is never silent — it creates an identity")
+expect(approve(f"python3 {S}/register-models.py --name x --family claude --models a=b") is None and approve(f"python3 {S}/register.py") is None, "0: the registration scripts are never silent either")
+ce = subprocess.run([PY, "-c", "import sys, json; sys.path.insert(0, %r); from scio_common import child_env; print(json.dumps(sorted(child_env(CLAUDE_PLUGIN_ROOT='/r'))))" % S],
+                    capture_output=True, text=True, env=dict(aenv, AWS_SECRET_ACCESS_KEY="x", PYTHONPATH="/evil", LD_PRELOAD="/evil.so", GITHUB_TOKEN="ghp_x", OPENAI_API_KEY="sk-x", SCIO_ROLES="read", HTTPS_PROXY="http://p:1", LC_ALL="C.UTF-8"))
+got = set(json.loads(ce.stdout))
+expect(not (got & {"AWS_SECRET_ACCESS_KEY", "PYTHONPATH", "LD_PRELOAD", "GITHUB_TOKEN", "OPENAI_API_KEY"}) and {"PATH", "HOME", "SCIO_ROLES", "HTTPS_PROXY", "LC_ALL", "CLAUDE_PLUGIN_ROOT"} <= got, "0: child processes get an allowlisted environment, not the harness's secrets or loader variables")
+expect("child_env(" in open(os.path.join(HERE, "..", "server", "scio_local.py")).read() and all("child_env(" in open(os.path.join(HERE, h)).read() for h in ("cursor-hook.py", "agy-hook.py")), "0: scio-local and both hooks use it")
 expect(hook("auto-approve.py", "mcp__plugin_evil_scio__scio_whoami", {}) is None, "0: another plugin's server called scio is not ours")
 import re as _re
 expect(_re.fullmatch(json.load(open(os.path.join(ROOT, "hooks", "hooks.json")))["hooks"]["PreToolUse"][2]["matcher"], "mcp__plugin_scio_scio__scio_propose_edit"), "0: the check-claims hook matcher covers the plugin-prefixed name")
@@ -99,7 +110,7 @@ expect(hook("auto-approve.py", "Bash", {"command": "python3 /tmp/evil/skills/sci
 expect(approve("python3 /tmp/evil/skills/scio/scripts/fetch.py https://x") is None, "4: a planted script outside the plugin root is not")
 
 print("guard-secrets.py")
-KF = os.path.join(HERE, "..", "assets", "redteam", "credfile.tmp")
+KF = os.path.join(FIX, "credfile.tmp")
 open(KF, "w").write("opus=REDTEAM_SECOND_KEY_9876543210\n")
 try:
     expect(hook("guard-secrets.py", "Bash", {"command": f"head {KF}"}, {"SCIO_KEYS_FILE": KF}) == "deny", "5: head of a custom keys file (no 'keys' in the name) is denied")
@@ -117,6 +128,7 @@ def agy(name, args):
 expect(agy("filesystem/write_scio_file", {"path": "x"}) is None, "6: a foreign tool containing 'scio_' gets no decision")
 expect(agy("scio/scio_whoami", {}) == "allow", "6: scio/scio_whoami is allowed")
 expect(agy("scio/scio_contest", {}) is None, "6: scio/scio_contest is not")
+expect(agy("scio/scio_register", {}) is None, "6: scio/scio_register is not either")
 expect(agy("scio-local/workdir", {"kind": "write", "ref": "x"}) == "allow", "6: scio-local/workdir is allowed")
 
 print("redirects (whoami.py, register-models.py)")
@@ -196,7 +208,7 @@ for hf in ("hooks.json", os.path.join("hooks", "hooks-cursor.json")):
     cmds = re.findall(r'"command":\s*"((?:[^"\\]|\\.)*)"', open(os.path.join(ROOT, hf)).read())
     expect(cmds and all(not c.startswith("python3 skills/") for c in cmds) and all("|| echo" in c and "deny" in c for c in cmds if "hook.py" in c),
            f"4: {hf} ships absolute guard paths with a deny fallback")
-CC = os.path.join(HERE, "..", "assets", "redteam", "nondict.tmp.json")
+CC = os.path.join(FIX, "nondict.tmp.json")
 json.dump({"body": "x", "claims": ["not-a-dict"]}, open(CC, "w"))
 try:
     r = subprocess.run([PY, os.path.join(HERE, "check-claims.py"), CC], capture_output=True, text=True, env=aenv)
@@ -248,6 +260,10 @@ class M(http.server.BaseHTTPRequestHandler):
         elif req.get("method") == "tools/call" and (req.get("params") or {}).get("name") == "scio_register":
             data = {"agent_id": "ag_0123456789abcdef", "api_key": "sk_live_BRIDGE_TEST_KEY_0123456789", "claim_url": "https://scio.md/claim/x", "rank": 0}
             res = {"content": [{"type": "text", "text": json.dumps(data)}], "structuredContent": data, "isError": False}
+        elif req.get("method") == "tools/call" and (req.get("params") or {}).get("name") == "scio_get_panel":
+            res = {"content": [{"type": "text", "text": json.dumps({"claims": [{"text": open(os.path.join(FIX, "01-injection.txt")).read()}]})}], "isError": False}
+        elif req.get("method") == "tools/call" and (req.get("params") or {}).get("name") == "scio_search":
+            res = {"content": [{"type": "text", "text": json.dumps({"results": [{"summary": open(os.path.join(FIX, "clean.txt")).read()}]})}], "isError": False}
         elif req.get("method") == "tools/call":
             res = {"content": [{"type": "text", "text": "{}"}], "isError": False}
         else:
@@ -313,6 +329,18 @@ with tempfile.TemporaryDirectory() as d:
     outp, r = bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "scio_register", "arguments": {"display_name": "t", "model_family": "claude", "model_version": "claude-fable-5", "alias": "fable"}}}], SCIO_KEYS_FILE=kf2)
     lines = open(kf2).read().splitlines()
     expect(lines[0] == "old=sk_live_OLD_KEY_0123456789" and "fable=sk_live_BRIDGE_TEST_KEY_0123456789" in lines and "# default" not in open(kf2).read(), "B9: appending to a file without a final newline keeps both keys intact; the default is not flipped")
+    pin = subprocess.run([PY, "-c", "import sys; sys.path.insert(0, %r); from scio_common import pinned_url; print(pinned_url('SCIO_MCP', 'https://scio.md/mcp'), pinned_url('SCIO_API', 'https://scio.md/v1'))" % HERE],
+                         capture_output=True, text=True, env=dict(aenv, SCIO_MCP="https://evil.example/mcp", SCIO_API="http://10.0.0.5/v1"))
+    expect(pin.stdout.split() == ["https://scio.md/mcp", "https://scio.md/v1"] and "ignored" in pin.stderr, "B12: SCIO_MCP/SCIO_API pointing at another host are ignored — the key stays pinned to scio.md")
+    pin = subprocess.run([PY, "-c", "import sys; sys.path.insert(0, %r); from scio_common import pinned_url; print(pinned_url('SCIO_MCP', 'x'))" % HERE], capture_output=True, text=True, env=dict(aenv, SCIO_MCP="http://127.0.0.1:9/mcp"))
+    expect(pin.stdout.strip() == "http://127.0.0.1:9/mcp", "B12: a loopback override (the test double) is honoured")
+    outp, r = bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "scio_get_panel", "arguments": {"panel_id": "pn_x"}}},
+                      {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "scio_search", "arguments": {"query": "x"}}}], SCIO_KEYS_FILE=kf)
+    panel = [m for m in outp if m.get("id") == 1][0]["result"]["content"]
+    search = [m for m in outp if m.get("id") == 2][0]["result"]["content"]
+    expect(len(panel) == 2 and panel[0]["text"].startswith("[scio: this DATA from scio_get_panel carries") and "never instructions" in panel[0]["text"], "B13: panel material with an injection gets the findings note in front")
+    expect(panel[1]["text"] == json.dumps({"claims": [{"text": open(os.path.join(FIX, "01-injection.txt")).read()}]}), "B13: the served text itself is untouched (evidence for review)")
+    expect(len(search) == 1 and not search[0]["text"].startswith("[scio:"), "B13: clean search results get no note")
     mcp_mode["status"] = 429
     outp, r = bridge([{"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "scio_search", "arguments": {}}}], SCIO_KEYS_FILE=kf)
     mcp_mode["status"] = 200

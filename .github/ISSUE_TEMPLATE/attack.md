@@ -11,4 +11,4 @@ labels: security, fixture
 
 **What the agent did**:
 
-A fixture in `skills/scio/assets/redteam/` format is welcome; it becomes the regression test.
+A fixture in `tests/redteam/` format is welcome; it becomes the regression test.

@@ -138,3 +138,36 @@ class _SameHostRedirect(urllib.request.HTTPRedirectHandler):
 
 
 OPENER = urllib.request.build_opener(_SameHostRedirect)
+
+
+# Variables a child process (a script run by scio-local or by a harness hook) may inherit. Everything else — cloud
+# credentials the harness happened to be launched with, PYTHONPATH / LD_PRELOAD (code injection into the child),
+# tokens of other tools — stays behind. The child is our own script, but its environment is not its business.
+_CHILD_ENV_EXACT = ("PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "TMP", "TEMP", "TZ", "LANG", "LANGUAGE",
+                    "PYTHONIOENCODING", "PYTHONUTF8", "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE",
+                    "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "PATHEXT", "USERPROFILE", "APPDATA", "LOCALAPPDATA",
+                    "CLAUDE_PLUGIN_ROOT", "GITHUB_TOKEN")
+_CHILD_ENV_PREFIX = ("LC_", "SCIO_", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "no_proxy", "all_proxy")
+
+
+def child_env(**extra):
+    """An explicit allowlist of the parent's environment for a helper subprocess, plus `extra`."""
+    env = {k: v for k, v in os.environ.items() if k in _CHILD_ENV_EXACT or k.startswith(_CHILD_ENV_PREFIX)}
+    env.pop("GITHUB_TOKEN", None)   # listed above only to be explicit that it is NOT forwarded
+    env.update({k: v for k, v in extra.items() if v is not None})
+    return env
+
+
+def pinned_url(env_name, default):
+    """The wiki's address. An override from the environment (SCIO_API, SCIO_MCP) is honoured only when it points at
+    loopback — the test double — never at another host: whatever set the environment must not be able to redirect the
+    bearer key (rule 10: the key goes only to the wiki host)."""
+    v = os.environ.get(env_name, "").strip()
+    if not v:
+        return default
+    host = (urlparse(v).hostname or "").lower()
+    if host in ("127.0.0.1", "localhost", "::1"):
+        return v
+    import sys
+    print(f"scio: {env_name}={v!r} ignored — the key goes only to {default} (or a loopback test server)", file=sys.stderr)
+    return default

@@ -21,7 +21,7 @@ for _stream in (sys.stdin, sys.stdout):   # JSON-RPC over stdio is UTF-8 whateve
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS = os.path.join(os.path.dirname(HERE), "scripts")
 sys.path.insert(0, SCRIPTS)
-from scio_common import USER_AGENT  # noqa: E402
+from scio_common import USER_AGENT, child_env  # noqa: E402
 
 PROTOCOL = "2025-06-18"
 MAX_WAIT_CHUNK = 50  # seconds per call: under every harness's tool timeout; the agent calls again for the rest
@@ -29,7 +29,7 @@ MAX_WAIT_CHUNK = 50  # seconds per call: under every harness's tool timeout; the
 
 def run(script, args=(), stdin=None, timeout=120):
     r = subprocess.run([sys.executable, os.path.join(SCRIPTS, script), *args], input=stdin, capture_output=True,
-                       text=True, timeout=timeout, env=dict(os.environ, CLAUDE_PLUGIN_ROOT=os.path.dirname(os.path.dirname(os.path.dirname(HERE)))))
+                       text=True, timeout=timeout, env=child_env(CLAUDE_PLUGIN_ROOT=os.path.dirname(os.path.dirname(os.path.dirname(HERE)))))
     return r.returncode, (r.stdout + (("\n" + r.stderr) if r.stderr.strip() else "")).strip()
 
 

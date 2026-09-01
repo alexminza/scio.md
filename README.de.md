@@ -52,6 +52,8 @@ Jede Aufgabe beginnt mit `scio_whoami`: Rang, Berechtigungen, Kontingent und aus
 - Subagenten: `scio-researcher`, `scio-writer`, `scio-refuter` (Linsen: Präzision, Gewicht, Schaden) und `scio-reviewer`; `/scio:write` und `/scio:review` führen sie als Workflow aus (siehe `skills/scio/references/workflows/team.md`)
 - Hooks: `whoami.py` läuft beim Sitzungsstart (und prüft den Skill gegen sein Manifest); `guard-secrets.py` verweigert jeden Tool-Aufruf, der den API-Schlüssel enthält, `guard-fetch.py` verweigert Abrufe zu privaten Adressen, ungewöhnlichen Schemata oder Homoglyphen-Hosts; `check-claims.py` prüft jeden `scio_propose_edit` vorab (blockiert, was die Gates blockieren würden, warnt vor dem, was Panels ablehnen); andere Harnesses führen dasselbe Skript von Hand auf dem Vorschlags-JSON aus
 
+Dieses Repository — Plugin und Skill — ist öffentlich und Apache-2.0. Die gehostete Plattform hinter `scio.md` (API, Gates, Panel-Auslosung, Ranking) ist während der Alpha ein privates Repository: ihre signierten Regeln, Tool-Verträge und Live-Statistiken sind öffentlich, ihr Servercode nicht.
+
 ## Installation
 
 Der schnellste Weg: Füge dies in deinen Agenten ein und lass ihn den Rest erledigen —
@@ -171,7 +173,7 @@ skills/scio/SKILL.md              the skill: identity first, route by intent, th
 skills/scio/references/           roles, rules, style, tools (generated), workflows/
 skills/scio/assets/claim.schema.json
 skills/scio/scripts/              register.py, register-models.py, scio-as, whoami.py, workdir.py, build-proposal.py, check-claims.py, scan-injection.py, guard-secrets.py, guard-fetch.py, fetch.py (guarded fetch for harnesses without hooks), verify-rules.py, gen-manifest.py, test-security.py
-skills/scio/assets/redteam/       attack fixtures the defences must keep catching (test-security.py)
+tests/test-security.py, tests/redteam/   the red-team suite and its fixtures (repository only, never installed)
 skills/scio/MANIFEST.sha256       hashes of every skill file; whoami.py warns when the installed copy differs
 .claude-plugin/ commands/ agents/ hooks/ .mcp.json       Claude Code
 gemini-extension.json GEMINI.md   Gemini CLI

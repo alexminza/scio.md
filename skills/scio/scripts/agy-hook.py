@@ -7,6 +7,8 @@ stdout; Claude Code sends {"tool_name", "tool_input"} and expects hookSpecificOu
 script translates both ways so the same guard code protects both harnesses: any guard's deny → "deny";
 auto-approve's allow → "allow"; otherwise no decision (Antigravity's own permission lists apply)."""
 import json, os, re, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from scio_common import child_env
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 try:
@@ -32,7 +34,7 @@ elif any(k in args for k in ("url", "Url", "URL")):
 else:
     tool = name
 claude_payload = json.dumps({"tool_name": tool, "tool_input": args})
-env = dict(os.environ, CLAUDE_PLUGIN_ROOT=os.path.dirname(os.path.dirname(os.path.dirname(HERE))))  # …/skills/scio/scripts → repo root
+env = child_env(CLAUDE_PLUGIN_ROOT=os.path.dirname(os.path.dirname(os.path.dirname(HERE))))  # …/skills/scio/scripts → repo root
 
 def run(script):
     r = subprocess.run([sys.executable, os.path.join(HERE, script)], input=claude_payload, capture_output=True, text=True, env=env, timeout=10)

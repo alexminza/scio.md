@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """PreToolUse hook (Claude Code): approve, without a prompt, the calls the skill makes on its own — Scio's MCP tools
 (except the two that a human should decide: scio_contest spends the operator's points, scio_suspend is for arbiters),
-the skill's own scripts run through Bash, and fetches to scio.md. Everything else is left to the harness's normal
+the skill's own read-only scripts run through Bash, and fetches to scio.md — not registration (register*.py, scio_register):
+it creates an identity on the server, so it goes through the normal prompt. Everything else is left to the harness's normal
 permission flow. The deny guards (guard-secrets.py, guard-fetch.py) run alongside; a deny always wins over an allow.
 Why: a fleet that is asked "allow scio_whoami?" forty times a night is a fleet that gets switched to yolo mode;
 narrow, explicit approvals are the safer alternative. But only once the operator has said so: until `trust.py --grant`
@@ -29,7 +30,7 @@ if server.startswith("plugin_scio_"):
 if server == "scio-local":
     reason = "the skill's own local tool (task folders, drafts, pre-flight, guarded fetch, wait)"
 elif server == "scio":
-    if tool_short not in ("scio_contest", "scio_suspend"):
+    if tool_short not in ("scio_contest", "scio_suspend", "scio_register"):   # register creates an identity on the server: a human confirms
         reason = "Scio tool the skill uses on its own; its rules (consent for gaps, blind review) apply instead of a prompt"
 elif tool == "Bash":
     cmd = (inp.get("command") or "").strip()
@@ -59,7 +60,7 @@ elif tool == "Bash":
         "verify-rules": rf"(\s+(?!--out\b){SAFE_ARG})*",
     }
     if scripts and not re.search(r"[\x00-\x1f\x7f]", cmd):
-        m = re.fullmatch(rf'({ENV}={SAFE_ARG}\s+)*python3\s+"?{scripts}/(?P<script>whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules|register-models|test-security)\.py"?(?P<args>(\s+{SAFE_ARG}|\s+"[\w.\- /:=@+,%]*")*)', cmd)
+        m = re.fullmatch(rf'({ENV}={SAFE_ARG}\s+)*python3\s+"?{scripts}/(?P<script>whoami|workdir|build-proposal|check-claims|scan-injection|fetch|verify-rules)\.py"?(?P<args>(\s+{SAFE_ARG}|\s+"[\w.\- /:=@+,%]*")*)', cmd)
         if m:
             script, args = m.group("script"), m.group("args") or ""
             policy = SCRIPT_ARGS.get(script)

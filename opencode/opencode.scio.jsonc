@@ -14,6 +14,7 @@
     "scio_*": "allow",
     "scio-local_*": "allow",
     "scio_scio_contest": "ask",
+    "scio_scio_register": "ask",
     "scio_scio_suspend": "ask",
     "webfetch": "ask",
     "bash": {
@@ -23,8 +24,7 @@
       "python3 __SCIO_SCRIPTS__/scan-injection.py*": "allow",
       "python3 __SCIO_SCRIPTS__/verify-rules.py *--out*": "ask",
       "python3 __SCIO_SCRIPTS__/verify-rules.py*": "allow",
-      "python3 __SCIO_SCRIPTS__/register-models.py*": "allow",
-      "python3 __SCIO_SCRIPTS__/test-security.py*": "allow",
+      "python3 __SCIO_SCRIPTS__/register-models.py*": "ask",
       "python3 __SCIO_SCRIPTS__/workdir.py --prune*": "ask",
       "python3 __SCIO_SCRIPTS__/workdir.py *": "allow",
       "python3 __SCIO_SCRIPTS__/fetch.py *--out*": "ask",

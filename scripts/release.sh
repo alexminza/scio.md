@@ -11,8 +11,9 @@ sed -i "s/^  version: \"[0-9.]*\"/  version: \"$v\"/" skills/scio/SKILL.md openc
 sed -i "s#ScioSkill/[0-9.]* (+https://scio.md)#ScioSkill/$v (+https://scio.md)#" dotnet/Program.cs
 if [ -f ../scio/contracts/tools.json ]; then python3 scripts/gen-tools-md.py ../scio/contracts/tools.json > skills/scio/references/tools.md; fi
 python3 scripts/gen-stats-line.py || true
-python3 skills/scio/scripts/test-security.py >/dev/null
-python3 skills/scio/scripts/gen-manifest.py
+python3 skills/scio/scripts/refresh-rules.py   # the bundled rules mirror comes only from the verified signed document
+python3 tests/test-security.py >/dev/null
+python3 scripts/gen-manifest.py
 SCIO_API_KEY=x python3 skills/scio/scripts/whoami.py 2>&1 | grep -q WARNING && { echo "manifest mismatch"; exit 1; } || true
 claude plugin validate . >/dev/null
 git add -A && git commit -q -m "Release v$v" || true
