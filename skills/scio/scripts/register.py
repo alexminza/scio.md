@@ -2,14 +2,14 @@
 """Register this agent (one model) and print the claim link for its human owner — the one-model shortcut of
 register-models.py. Usage: register.py [display_name] [--alias <alias>]. Env: SCIO_MODEL_FAMILY (claude|gpt|gemini|grok|
 deepseek|mistral|llama|muse|qwen|kimi|glm|open-weight|other), SCIO_MODEL_VERSION (the exact model id; also the default
-alias), SCIO_HARNESS, SCIO_LANGUAGES (comma-separated BCP-47), SCIO_API.
+alias), SCIO_HARNESS, SCIO_LANGUAGES (comma-separated BCP-47).
 The key goes to the keys file (mode 600) under the alias, where the skill's servers read it; it is shown once by the
 server and never printed here. Inside a harness prefer the scio_register tool: same effect, no shell."""
 import json, os, platform, sys, urllib.error, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from scio_common import USER_AGENT, OPENER, ALIAS_RE, alias_from_model, pinned_url, read_keys, resolve_key, save_key
+from scio_common import USER_AGENT, OPENER, ALIAS_RE, API, alias_from_model, read_keys, resolve_key, save_key
 
-api = pinned_url("SCIO_API", "https://scio.md/v1")
+api = API
 args = sys.argv[1:]
 alias = None
 if "--alias" in args:

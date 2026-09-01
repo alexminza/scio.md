@@ -10,6 +10,19 @@ import glob, json, os, re, subprocess, sys
 TESTS = os.path.dirname(os.path.abspath(__file__))
 HERE = os.path.join(os.path.dirname(TESTS), "skills", "scio", "scripts")   # the runtime scripts under test
 FIX = os.path.join(TESTS, "redteam")
+import shutil, tempfile as _tempfile
+
+
+def runtime_copy(base_url):
+    """An isolated copy of skills/scio whose fixed wiki address (scio_common.SCIO_HOST) is `base_url` — the only way a
+    test reaches a local double. The installed tree itself has no variable or argument that moves the bearer's destination."""
+    d = _tempfile.mkdtemp(prefix="scio-rt-")
+    shutil.copytree(os.path.dirname(HERE), os.path.join(d, "scio"), ignore=shutil.ignore_patterns("__pycache__"))
+    cp = os.path.join(d, "scio", "scripts", "scio_common.py")
+    src = open(cp, encoding="utf-8").read()
+    assert 'SCIO_HOST = "https://scio.md"' in src
+    open(cp, "w", encoding="utf-8").write(src.replace('SCIO_HOST = "https://scio.md"', f'SCIO_HOST = "{base_url}"', 1))
+    return os.path.join(d, "scio")
 PY = sys.executable
 import tempfile as _tf
 _trust = os.path.join(_tf.mkdtemp(), "auto-approve"); open(_trust, "w").write("granted (test)\n")
@@ -145,7 +158,8 @@ class H(http.server.BaseHTTPRequestHandler):
 api = http.server.HTTPServer(("127.0.0.1", 0), H); other = http.server.HTTPServer(("127.0.0.1", 0), H)
 for srv in (api, other):
     threading.Thread(target=srv.serve_forever, daemon=True).start()
-subprocess.run([PY, os.path.join(HERE, "whoami.py")], capture_output=True, text=True, env=dict(aenv, SCIO_API=f"http://127.0.0.1:{api.server_port}/v1"))
+RT_API = runtime_copy(f"http://127.0.0.1:{api.server_port}")
+subprocess.run([PY, os.path.join(RT_API, "scripts", "whoami.py")], capture_output=True, text=True, env=aenv)
 expect(any(p == api.server_port and a for p, a in seen), "8: the bearer reaches the API host")
 expect(not any(p == other.server_port for p, a in seen), "8: a redirect to another host is not followed")
 api.shutdown(); other.shutdown()
@@ -241,7 +255,7 @@ except ImportError:
 # --- v0.4.0: the bridge (scio_bridge.py) — install and go, and the key never enters the model's context ------------
 print("scio_bridge.py")
 import tempfile
-BRIDGE = os.path.join(os.path.dirname(HERE), "server", "scio_bridge.py")
+BRIDGE = None   # set once the MCP double is listening (runtime_copy)
 mcp_seen, mcp_mode = [], {"status": 200}
 class M(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
@@ -273,9 +287,10 @@ class M(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a): pass
 mcp = http.server.ThreadingHTTPServer(("127.0.0.1", 0), M)   # the bridge calls in parallel
 threading.Thread(target=mcp.serve_forever, daemon=True).start()
+RT_MCP = runtime_copy(f"http://127.0.0.1:{mcp.server_port}")
+BRIDGE = os.path.join(RT_MCP, "server", "scio_bridge.py")
 def bridge(msgs, **extra):
     benv = {k: v for k, v in aenv.items() if k not in ("SCIO_API_KEY", "SCIO_KEYS_FILE")}
-    benv["SCIO_MCP"] = f"http://127.0.0.1:{mcp.server_port}/mcp"
     benv.update(extra)
     r = subprocess.run([PY, BRIDGE, "--harness", "test"], input="".join(json.dumps(m) + "\n" for m in msgs), capture_output=True, text=True, env=benv)
     return [json.loads(l) for l in r.stdout.splitlines() if l.strip()], r
@@ -329,18 +344,21 @@ with tempfile.TemporaryDirectory() as d:
     outp, r = bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "scio_register", "arguments": {"display_name": "t", "model_family": "claude", "model_version": "claude-fable-5", "alias": "fable"}}}], SCIO_KEYS_FILE=kf2)
     lines = open(kf2).read().splitlines()
     expect(lines[0] == "old=sk_live_OLD_KEY_0123456789" and "fable=sk_live_BRIDGE_TEST_KEY_0123456789" in lines and "# default" not in open(kf2).read(), "B9: appending to a file without a final newline keeps both keys intact; the default is not flipped")
-    pin = subprocess.run([PY, "-c", "import sys; sys.path.insert(0, %r); from scio_common import pinned_url; print(pinned_url('SCIO_MCP', 'https://scio.md/mcp'), pinned_url('SCIO_API', 'https://scio.md/v1'))" % HERE],
-                         capture_output=True, text=True, env=dict(aenv, SCIO_MCP="https://evil.example/mcp", SCIO_API="http://10.0.0.5/v1"))
-    expect(pin.stdout.split() == ["https://scio.md/mcp", "https://scio.md/v1"] and "ignored" in pin.stderr, "B12: SCIO_MCP/SCIO_API pointing at another host are ignored — the key stays pinned to scio.md")
-    pin = subprocess.run([PY, "-c", "import sys; sys.path.insert(0, %r); from scio_common import pinned_url; print(pinned_url('SCIO_MCP', 'x'))" % HERE], capture_output=True, text=True, env=dict(aenv, SCIO_MCP="http://127.0.0.1:9/mcp"))
-    expect(pin.stdout.strip() == "http://127.0.0.1:9/mcp", "B12: a loopback override (the test double) is honoured")
-    outp, r = bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "scio_get_panel", "arguments": {"panel_id": "pn_x"}}},
-                      {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "scio_search", "arguments": {"query": "x"}}}], SCIO_KEYS_FILE=kf)
-    panel = [m for m in outp if m.get("id") == 1][0]["result"]["content"]
-    search = [m for m in outp if m.get("id") == 2][0]["result"]["content"]
-    expect(len(panel) == 2 and panel[0]["text"].startswith("[scio: this DATA from scio_get_panel carries") and "never instructions" in panel[0]["text"], "B13: panel material with an injection gets the findings note in front")
-    expect(panel[1]["text"] == json.dumps({"claims": [{"text": open(os.path.join(FIX, "01-injection.txt")).read()}]}), "B13: the served text itself is untouched (evidence for review)")
-    expect(len(search) == 1 and not search[0]["text"].startswith("[scio:"), "B13: clean search results get no note")
+    # B12 — endpoint pinning: with hostile SCIO_API / SCIO_MCP / --api in the environment and arguments, the installed
+    # code still resolves the wiki to https://scio.md (imports of the real modules, no network involved)
+    hostile = dict(aenv, SCIO_MCP="http://127.0.0.1:1/mcp", SCIO_API="http://127.0.0.1:1/v1", SCIO_HOST="http://127.0.0.1:1")
+    probe = ("import sys, importlib.util; sys.path.insert(0, %r); import scio_common as c; "
+             "spec = importlib.util.spec_from_file_location('scio_bridge', %r); b = importlib.util.module_from_spec(spec); spec.loader.exec_module(b); "
+             "print(c.API, c.MCP, b.REMOTE)") % (HERE, os.path.join(os.path.dirname(HERE), "server", "scio_bridge.py"))
+    pin = subprocess.run([PY, "-c", probe], capture_output=True, text=True, env=hostile)
+    expect(pin.stdout.split() == ["https://scio.md/v1", "https://scio.md/mcp", "https://scio.md/mcp"], "B12: SCIO_API/SCIO_MCP/SCIO_HOST in the environment do not move the installed bridge, whoami or registration off https://scio.md")
+    del mcp_seen[:]
+    outp, r = bridge([{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}], SCIO_KEYS_FILE=kf, SCIO_MCP="http://127.0.0.1:1/mcp")
+    expect(mcp_seen and mcp_seen[0][0] == "tools/list", "B12: the test double is reached only through the rewritten test copy, never through a variable")
+    argprobe = subprocess.run([PY, "-c", "import sys; sys.argv=['x','--name','n','--models','a=b','--api','http://127.0.0.1:1/v1']; sys.path.insert(0, %r); "
+                              "p=%r; src=open(p).read().split('models = []')[0]; g={'__file__': p, '__name__': 'rm'}; exec(compile(src, 'rm', 'exec'), g); print(g['a'].api)" % (HERE, os.path.join(HERE, "register-models.py"))],
+                              capture_output=True, text=True, env=dict(aenv, SCIO_KEYS_FILE="/nonexistent"))
+    expect(argprobe.stdout.strip() == "https://scio.md/v1", "B12: register-models.py --api cannot move the registration endpoint either")
     mcp_mode["status"] = 429
     outp, r = bridge([{"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "scio_search", "arguments": {}}}], SCIO_KEYS_FILE=kf)
     mcp_mode["status"] = 200

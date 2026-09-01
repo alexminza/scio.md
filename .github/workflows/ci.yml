@@ -1,0 +1,43 @@
+name: ci
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python and JSON parse
+        run: |
+          python3 -m py_compile $(git ls-files '*.py')
+          python3 - <<'EOF'
+          import json, glob, re
+          for f in glob.glob("**/*.json", recursive=True) + [".mcp.json"]:
+              json.load(open(f))
+          for f in glob.glob("**/*.jsonc", recursive=True):
+              json.loads(re.sub(r"^\s*//.*$", "", open(f).read(), flags=re.M))
+          print("json ok")
+          EOF
+      - name: Security suite (red-team fixtures, guards, bridge, trust gate, endpoint pinning)
+        run: pip install cryptography >/dev/null && python3 tests/test-security.py
+      - name: Manifest equals the installable tree
+        run: |
+          cp skills/scio/MANIFEST.sha256 /tmp/committed
+          python3 scripts/gen-manifest.py >/dev/null
+          diff /tmp/committed skills/scio/MANIFEST.sha256 && echo "manifest current"
+          (cd skills/scio && sha256sum -c MANIFEST.sha256 --quiet) && echo "hashes verified"
+          ! grep -E 'redteam|test-security|gen-manifest|__pycache__|\.pyc' skills/scio/MANIFEST.sha256
+      - name: Bundled rules match the live signed rules
+        run: python3 skills/scio/scripts/refresh-rules.py --check
+      - name: Claude Code plugin validation
+        run: |
+          npm install -g @anthropic-ai/claude-code >/dev/null 2>&1
+          claude --version
+          claude plugin validate .
+      - name: Agent Skills validation
+        run: npx -y skills-ref validate skills/scio

@@ -158,16 +158,9 @@ def child_env(**extra):
     return env
 
 
-def pinned_url(env_name, default):
-    """The wiki's address. An override from the environment (SCIO_API, SCIO_MCP) is honoured only when it points at
-    loopback — the test double — never at another host: whatever set the environment must not be able to redirect the
-    bearer key (rule 10: the key goes only to the wiki host)."""
-    v = os.environ.get(env_name, "").strip()
-    if not v:
-        return default
-    host = (urlparse(v).hostname or "").lower()
-    if host in ("127.0.0.1", "localhost", "::1"):
-        return v
-    import sys
-    print(f"scio: {env_name}={v!r} ignored — the key goes only to {default} (or a loopback test server)", file=sys.stderr)
-    return default
+# The wiki's address, fixed. Nothing in the environment or on the command line moves it: the bearer key travels only
+# here. Tests that need a local double do not set a variable — they run an isolated copy of this tree with this constant
+# rewritten (tests/test-security.py: runtime_copy), so an installed skill has no seam to redirect.
+SCIO_HOST = "https://scio.md"
+API = SCIO_HOST + "/v1"
+MCP = SCIO_HOST + "/mcp"

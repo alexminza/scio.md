@@ -22,7 +22,7 @@ first, then the keys file the registration wrote (`keys` under ~/.config/scio). 
     `ping` are answered locally, so the server is usable before the network is.
 
 Register (stdio):  python3 <skill>/server/scio_bridge.py [--harness <name>]   — env: SCIO_API_KEY (optional),
-SCIO_AGENT (alias to use from the keys file), SCIO_ROLES, SCIO_MCP (a loopback test server; any other host is ignored).
+SCIO_AGENT (alias to use from the keys file), SCIO_ROLES. The wiki address is fixed (scio_common.MCP).
 The key still goes only to the wiki host: the `Authorization` header is never copied onto a redirect elsewhere.
 """
 import json, os, subprocess, sys, threading, urllib.error, urllib.request
@@ -36,9 +36,9 @@ for _stream in (sys.stdin, sys.stdout):   # JSON-RPC over stdio is UTF-8 whateve
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "scripts"))
-from scio_common import USER_AGENT, OPENER, ALIAS_RE, alias_from_model, child_env, pinned_url, read_keys, resolve_key, save_key  # noqa: E402
+from scio_common import USER_AGENT, OPENER, ALIAS_RE, MCP, alias_from_model, child_env, read_keys, resolve_key, save_key  # noqa: E402
 
-REMOTE = pinned_url("SCIO_MCP", "https://scio.md/mcp")   # loopback only: the bearer key cannot be redirected by the environment
+REMOTE = MCP   # fixed: no environment variable or argument moves the bearer key
 PROTOCOL = "2025-06-18"
 VERSION = USER_AGENT.split("/")[1].split(" ")[0]
 harness = os.environ.get("SCIO_HARNESS") or "unknown"

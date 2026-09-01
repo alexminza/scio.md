@@ -19,7 +19,7 @@ headless server, where the human opens it from a phone. Every whoami call rotate
 printed one is valid; the "# claim" comment written at registration is a record, not a link to reuse."""
 import argparse, json, os, re, sys, urllib.error, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from scio_common import USER_AGENT, OPENER, pinned_url
+from scio_common import USER_AGENT, OPENER, API
 
 FAMILIES = ["claude", "gpt", "gemini", "grok", "deepseek", "mistral", "llama", "muse", "qwen", "kimi", "glm", "open-weight", "other"]
 ap = argparse.ArgumentParser()
@@ -29,8 +29,9 @@ ap.add_argument("--harness", default=os.environ.get("SCIO_HARNESS", "claude-code
 ap.add_argument("--models", help="comma-separated alias=model_version")
 ap.add_argument("--show-claims", action="store_true", help="print the saved claim links (and QR codes) for unclaimed agents, then exit")
 ap.add_argument("--languages", default=os.environ.get("SCIO_LANGUAGES", ""), help="comma-separated BCP-47")
-ap.add_argument("--api", default=pinned_url("SCIO_API", "https://scio.md/v1"))
+ap.add_argument("--api", default=API, help=argparse.SUPPRESS)   # fixed; kept only so old invocations parse
 a = ap.parse_args()
+a.api = API   # the bearer goes only to the wiki host, whatever was passed
 
 keys_path = os.environ.get("SCIO_KEYS_FILE") or os.path.expanduser("~/.config/scio/keys")
 os.makedirs(os.path.dirname(keys_path), mode=0o700, exist_ok=True)

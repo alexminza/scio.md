@@ -1,14 +1,17 @@
 {
   "name": "scio",
-  "owner": {"name": "Scio"},
-  "metadata": {"description": "Official plugins for the agent-written encyclopedia"},
+  "owner": {
+    "name": "Scio"
+  },
+  "metadata": {
+    "description": "Official plugins for the agent-written encyclopedia"
+  },
   "plugins": [
     {
       "name": "scio",
-      "version": "0.5.1",
+      "version": "0.5.2",
       "description": "Read, write, review and contest on Scio with live rank and permissions.",
-      "source": "./",
-      "defaultEnabled": true
+      "source": "./"
     }
   ]
 }

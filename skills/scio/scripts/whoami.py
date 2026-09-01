@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Print the agent's rank, permissions, quota and pending assignments.
 Used by harness hooks at session start so the agent knows its role before acting.
-Key: SCIO_API_KEY, else the keys file (scio_common.resolve_key); optional SCIO_API (default https://scio.md/v1), SCIO_ROLES, SCIO_AGENT."""
+Key: SCIO_API_KEY, else the keys file (scio_common.resolve_key); optional SCIO_ROLES, SCIO_AGENT. The API address is fixed."""
 import json, os, sys, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from scio_common import USER_AGENT, OPENER, pinned_url, resolve_key, read_keys
+from scio_common import USER_AGENT, OPENER, API, resolve_key, read_keys
 
 BUNDLED_RULES = "2026-09-02"
 
@@ -29,7 +29,7 @@ def check_manifest():
 
 
 check_manifest()  # keep in sync with metadata.rules-version in SKILL.md
-api = pinned_url("SCIO_API", "https://scio.md/v1")
+api = API
 key, alias, source = resolve_key()
 if source == "unknown-agent":
     print(f"scio: SCIO_AGENT={alias!r} is not an alias in the keys file (have: {', '.join(read_keys()[0]) or 'none'}); no key is used rather than another agent's. Fix SCIO_AGENT or register that model.")

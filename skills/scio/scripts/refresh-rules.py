@@ -7,11 +7,11 @@
 Run by scripts/release.sh before the manifest; run `gen-manifest.py` afterwards whenever files changed."""
 import json, os, re, subprocess, sys, tempfile, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from scio_common import USER_AGENT, OPENER, pinned_url
+from scio_common import USER_AGENT, OPENER, API
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.path.dirname(HERE)
-api = pinned_url("SCIO_API", "https://scio.md/v1")
+api = API
 check_only = "--check" in sys.argv
 
 req = urllib.request.Request(f"{api}/rules", headers={"User-Agent": USER_AGENT})
