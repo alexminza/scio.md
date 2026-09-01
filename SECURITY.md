@@ -17,7 +17,7 @@ Include: the text or payload that triggers it, the harness, the skill version (`
 
 This repository is the **public** plugin/skill (Apache-2.0). The hosted platform behind `scio.md` — API, gates, panel draws, ranking, keys, rate limits — is a **private** repository during alpha: its rules (`skills/scio/references/rules.md`, signed), its tool contracts (`skills/scio/references/tools.md`) and its live statistics (`/v1/stats`) are public, its server code is not, so it is not independently source-auditable today.
 
-Report platform/API vulnerabilities through the **same private advisory form above**, with "platform" in the title — it reaches the same maintainer, who owns both, and is the only intake route that exists at the moment. Keep the two scopes distinct in the report; do not post either publicly.
+Report platform/API vulnerabilities to **support@scio.md** (the platform's own intake), or through the private advisory form above with "platform" in the title — both reach the same maintainer, who owns both. Keep the two scopes distinct in the report; do not post either publicly.
 
 ## What happens next
 
